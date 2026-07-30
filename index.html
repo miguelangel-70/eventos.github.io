@@ -3,9 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Düsseldorf — Agenda de Eventos</title>
+    <title>Los Locos del Tandem — Eventos</title>
+    <meta name="description" content="Agenda de eventos culturales y de ocio en Düsseldorf: qué hacer, cuándo y dónde.">
 
-    <!-- ===== SECURITY HEADERS (meta) ===== -->
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Los Locos del Tandem — Eventos">
+    <meta property="og:description" content="Agenda de eventos culturales y de ocio en Düsseldorf: qué hacer, cuándo y dónde.">
+    <meta property="og:url" content="https://eventos-tandem.vercel.app/">
+    <meta property="og:image" content="https://eventos-tandem.vercel.app/images/og-preview.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Los Locos del Tandem — Eventos">
+    <meta name="twitter:description" content="Agenda de eventos culturales y de ocio en Düsseldorf: qué hacer, cuándo y dónde.">
+    <meta name="twitter:image" content="https://eventos-tandem.vercel.app/images/og-preview.jpg">
+
+    <!-- Seguridad -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' 'unsafe-inline' https://unpkg.com;
@@ -13,15 +27,15 @@
         font-src 'self' https://fonts.gstatic.com;
         img-src 'self' data: https://*.basemaps.cartocdn.com;
         connect-src 'self' https://photon.komoot.io;
+        object-src 'none';
         frame-src 'none';
-        frame-ancestors 'none';
         base-uri 'self';
         form-action 'none';
+        upgrade-insecure-requests;
     ">
-    <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
-    <!-- ===== EXTERNAL RESOURCES with SRI ===== -->
+    <!-- Recursos -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -33,7 +47,7 @@
     </script>
 
     <style>
-        /* ===== ORIGINAL STYLES (preserved) ===== */
+        /* ===== VARIABLES ===== */
         :root {
             --blue: #1a6aa8;
             --gold: #D4A843;
@@ -46,6 +60,8 @@
             --free: #2ecc71;
             --paid: #e6813a;
         }
+
+        /* ===== RESET & BASE ===== */
         *,
         *::before,
         *::after {
@@ -63,7 +79,7 @@
             overflow: hidden;
         }
 
-        /* ===== NOTIFICATIONS ===== */
+        /* ===== NOTIFICACIONES ===== */
         #notif-container {
             position: fixed;
             top: 16px;
@@ -94,21 +110,10 @@
             gap: 10px;
             border-left: 4px solid var(--gold);
         }
-        .notif.error {
-            border-left-color: #e74c3c;
-        }
-        .notif.success {
-            border-left-color: var(--free);
-        }
-        .notif.info {
-            border-left-color: var(--blue);
-        }
-        .notif-icon {
-            font-size: 1.1rem;
-            flex-shrink: 0;
-            cursor: default;
-            user-select: none;
-        }
+        .notif.error { border-left-color: #e74c3c; }
+        .notif.success { border-left-color: var(--free); }
+        .notif.info { border-left-color: var(--blue); }
+        .notif-icon { font-size: 1.1rem; flex-shrink: 0; cursor: default; user-select: none; }
         .notif-close {
             background: none;
             border: none;
@@ -123,24 +128,11 @@
             border-radius: 7px;
             transition: background 0.15s, color 0.15s;
         }
-        .notif-close:hover {
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.14);
-        }
-        @keyframes notifIn {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        @keyframes notifOut {
-            to {
-                opacity: 0;
-                transform: translateX(30px);
-            }
-        }
+        .notif-close:hover { color: var(--text); background: rgba(255,255,255,0.14); }
+        @keyframes notifIn { to { opacity: 1; transform: translateX(0); } }
+        @keyframes notifOut { to { opacity: 0; transform: translateX(30px); } }
 
-        /* ===== MODAL OVERLAY ===== */
+        /* ===== MODALES ===== */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -155,9 +147,7 @@
             justify-content: center;
             padding: 20px;
         }
-        .modal-overlay.open {
-            display: flex;
-        }
+        .modal-overlay.open { display: flex; }
         .modal-box {
             background: var(--panel);
             border-radius: 16px;
@@ -176,23 +166,12 @@
             margin-bottom: 12px;
             color: var(--gold);
         }
-        .modal-box p,
-        .modal-box li {
-            font-size: 0.85rem;
-            line-height: 1.6;
-            color: #ccc;
-        }
-        .modal-box ul {
-            padding-left: 20px;
-            margin: 8px 0 12px;
-        }
-        .modal-box a {
-            color: var(--gold);
-            text-decoration: underline;
-        }
+        .modal-box p, .modal-box li { font-size: 0.85rem; line-height: 1.6; color: #ccc; }
+        .modal-box ul { padding-left: 20px; margin: 8px 0 12px; }
+        .modal-box a { color: var(--gold); text-decoration: underline; }
         .modal-box .btn-close-modal {
             margin-top: 18px;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255,255,255,0.08);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 8px 18px;
@@ -202,9 +181,7 @@
             font-size: 0.8rem;
             transition: background 0.2s;
         }
-        .modal-box .btn-close-modal:hover {
-            background: rgba(255, 255, 255, 0.16);
-        }
+        .modal-box .btn-close-modal:hover { background: rgba(255,255,255,0.16); }
         .modal-box .btn-primary {
             background: var(--gold);
             color: var(--dark);
@@ -217,11 +194,9 @@
             transition: filter 0.2s;
             font-family: 'DM Sans', sans-serif;
         }
-        .modal-box .btn-primary:hover {
-            filter: brightness(1.1);
-        }
+        .modal-box .btn-primary:hover { filter: brightness(1.1); }
         .modal-box .btn-secondary {
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(255,255,255,0.06);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 10px 22px;
@@ -231,9 +206,7 @@
             transition: background 0.2s;
             font-family: 'DM Sans', sans-serif;
         }
-        .modal-box .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
+        .modal-box .btn-secondary:hover { background: rgba(255,255,255,0.12); }
         .modal-box .btn-danger {
             background: #c0392b;
             color: #fff;
@@ -246,9 +219,7 @@
             transition: filter 0.2s;
             font-family: 'DM Sans', sans-serif;
         }
-        .modal-box .btn-danger:hover {
-            filter: brightness(1.15);
-        }
+        .modal-box .btn-danger:hover { filter: brightness(1.15); }
         .modal-box .checkbox-row {
             display: flex;
             align-items: center;
@@ -261,11 +232,7 @@
             accent-color: var(--gold);
             cursor: pointer;
         }
-        .modal-box .checkbox-row label {
-            font-size: 0.85rem;
-            color: #ccc;
-            cursor: pointer;
-        }
+        .modal-box .checkbox-row label { font-size: 0.85rem; color: #ccc; cursor: pointer; }
         .modal-box .data-list {
             background: var(--card);
             border-radius: 8px;
@@ -277,13 +244,8 @@
             color: #ddd;
             list-style: none;
         }
-        .modal-box .data-list li {
-            padding: 4px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .modal-box .data-list li:last-child {
-            border-bottom: none;
-        }
+        .modal-box .data-list li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+        .modal-box .data-list li:last-child { border-bottom: none; }
         .modal-box .actions-row {
             display: flex;
             flex-wrap: wrap;
@@ -291,7 +253,7 @@
             margin-top: 16px;
         }
 
-        /* ===== ORIGINAL LAYOUT ===== */
+        /* ===== HEADER ===== */
         header {
             background: linear-gradient(135deg, #1a6aa8 0%, #123a63 60%, #1A1A2E 100%);
             padding: 11px 20px 10px;
@@ -303,6 +265,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, .1);
             overflow: hidden;
             position: relative;
+            z-index: 10;
         }
         header::after {
             content: 'DUS';
@@ -323,9 +286,7 @@
             line-height: 1;
             white-space: nowrap;
         }
-        .hdr-left h1 span {
-            color: var(--gold);
-        }
+        .hdr-left h1 span { color: var(--gold); }
         .hdr-left p {
             font-size: .68rem;
             color: rgba(255, 255, 255, .55);
@@ -338,7 +299,24 @@
             gap: 8px;
             flex-wrap: wrap;
             align-self: flex-start;
+            width: 100%;
+            justify-content: flex-end; /* Alinea a la derecha */
         }
+        .hdr-actions .hamburger {
+            font-size: 1.5rem;
+            line-height: 1;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #ddd;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background .2s;
+            font-family: inherit;
+            order: 2; /* A la derecha */
+        }
+        .hdr-actions .hamburger:hover { background: rgba(255,255,255,0.18); }
+
         #btn-locate {
             background: rgba(255, 255, 255, .12);
             border: 1px solid rgba(255, 255, 255, .25);
@@ -354,162 +332,340 @@
             gap: 6px;
             transition: background .2s;
             white-space: nowrap;
+            order: 1; /* A la izquierda */
         }
-        #btn-locate:hover {
-            background: rgba(255, 255, 255, .22);
-        }
+        #btn-locate:hover { background: rgba(255, 255, 255, .22); }
         #btn-locate svg {
             width: 15px;
             height: 15px;
             flex-shrink: 0;
         }
-        .hdr-btn {
-            background: rgba(255, 255, 255, .08);
-            border: 1px solid rgba(255, 255, 255, .15);
-            color: #ddd;
-            padding: 6px 12px;
-            border-radius: 7px;
-            cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
-            font-size: .7rem;
-            font-weight: 500;
-            transition: background .2s;
-            white-space: nowrap;
-        }
-        .hdr-btn:hover {
-            background: rgba(255, 255, 255, .18);
-        }
+        /* Ya no hay .hdr-btn para política y gestión en el header */
 
-        .filters {
+        /* ===== MENÚ HAMBURGUESA (DRAWER) ===== */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9000;
+            display: none;
+            justify-content: flex-start;
+            align-items: stretch;
+            backdrop-filter: blur(2px);
+        }
+        .menu-overlay.open { display: flex; }
+        .menu-drawer {
             background: var(--panel);
-            padding: 7px 10px;
+            width: 88%;
+            max-width: 440px;
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px 18px 30px;
+            box-shadow: 4px 0 30px rgba(0, 0, 0, 0.6);
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            flex-shrink: 0;
-            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
         }
-        .frow {
+        .menu-overlay.open .menu-drawer { transform: translateX(0); }
+        .menu-header {
             display: flex;
-            align-items: center;
-            gap: 6px;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-        }
-        .frow::-webkit-scrollbar {
-            display: none;
-        }
-        .frow-status {
             justify-content: space-between;
-            overflow-x: visible;
-        }
-        .frow-status-left {
-            display: flex;
             align-items: center;
-            gap: 6px;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
-        .flabel {
-            font-size: .66rem;
+        .menu-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: var(--gold);
+            margin: 0;
+        }
+        .menu-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 2rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 8px;
+            transition: color 0.15s;
+        }
+        .menu-close:hover { color: var(--text); }
+
+        .menu-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            padding-bottom: 10px;
+        }
+        .menu-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .menu-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
             color: var(--muted);
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            flex: 0 0 auto;
         }
-        .chip {
-            padding: 4px 11px;
-            border-radius: 20px;
+
+        /* === SEMANA === */
+        .menu-week {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .menu-week .wk-nav {
+            font-size: 1.2rem;
+            font-weight: 700;
+            padding: 8px 16px;
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
             border: 1px solid var(--border);
-            font-size: .72rem;
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+            cursor: pointer;
+            transition: background 0.15s;
+            font-family: inherit;
+        }
+        .menu-week .wk-nav:hover { background: rgba(255,255,255,0.14); }
+        .menu-week .wk-label {
+            flex: 1;
+            min-width: 140px;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text);
+            cursor: default;
+        }
+        .menu-week .wk-label.dim {
+            color: var(--muted);
+            font-style: italic;
+            background: transparent;
+            border-color: transparent;
+        }
+        .menu-week .wk-all {
+            padding: 8px 16px;
+            min-height: 44px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.06);
+            color: var(--muted);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+        .menu-week .wk-all:hover { background: rgba(255,255,255,0.12); }
+        .menu-week .wk-all.active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212,168,67,0.12);
+        }
+
+        /* === DÍAS === */
+        .menu-days {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .menu-days .chip {
+            flex: 0 0 auto;
+            padding: 8px 16px;
+            min-height: 44px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
             font-weight: 500;
             cursor: pointer;
             transition: all .18s;
             background: transparent;
             color: var(--muted);
-            flex: 0 0 auto;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-        .chip:hover {
-            color: var(--text);
-            border-color: rgba(255, 255, 255, .3);
-        }
-        .chip.active {
-            border-color: currentColor;
-        }
-        .chip.wk-nav {
-            font-weight: 700;
-            padding: 4px 9px;
-        }
-        .chip.wk-label {
-            cursor: default;
-            color: var(--text);
-            border-color: rgba(255, 255, 255, .18);
-            min-width: 118px;
-            text-align: center;
-        }
-        .chip.wk-label.dim {
-            color: var(--muted);
-            font-style: italic;
-        }
-        .chip.wk-all.active {
-            color: var(--gold);
-            border-color: var(--gold);
-            background: rgba(212, 168, 67, .12);
-        }
-        .chip.day-chip.active {
+        .menu-days .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+        .menu-days .chip.active {
             color: #5DADE2;
             border-color: #5DADE2;
-            background: rgba(93, 173, 226, .15);
-        }
-        .chip.price-chip.active {
-            color: var(--gold);
-            border-color: var(--gold);
-            background: rgba(212, 168, 67, .12);
-        }
-        .chip.price-chip[data-price="gratis"].active {
-            color: var(--free);
-            border-color: var(--free);
-            background: rgba(46, 204, 113, .12);
-        }
-        .chip.price-chip[data-price="pago"].active {
-            color: var(--paid);
-            border-color: var(--paid);
-            background: rgba(230, 126, 34, .12);
-        }
-        .chip.interest-chip.active {
-            color: var(--gold);
-            border-color: var(--gold);
-            background: rgba(212, 168, 67, .15);
-        }
-        .chip.type-chip[data-type="all"].active {
-            color: var(--gold);
-            border-color: var(--gold);
-            background: rgba(212, 168, 67, .12);
-        }
-        .fdiv {
-            width: 1px;
-            height: 18px;
-            background: var(--border);
-            flex-shrink: 0;
-        }
-        #fcount {
-            font-size: .68rem;
-            color: var(--muted);
-            background: var(--border);
-            padding: 3px 9px;
-            border-radius: 12px;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-        #geo-status {
-            font-size: .64rem;
-            color: var(--muted);
-            white-space: nowrap;
-            flex-shrink: 0;
+            background: rgba(93,173,226,0.15);
         }
 
+        /* === TIPOS (Categoría) === */
+        .menu-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .menu-types .chip {
+            flex: 0 0 auto;
+            padding: 8px 16px;
+            min-height: 44px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .18s;
+            background: transparent;
+            color: var(--muted);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .menu-types .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+        .menu-types .chip.active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212,168,67,0.12);
+        }
+        .menu-types .chip.type-all {
+            flex: 0 0 100%;
+            margin-top: 4px;
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.04);
+            color: var(--muted);
+        }
+        .menu-types .chip.type-all.active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212,168,67,0.12);
+        }
+
+        /* === PRECIO === */
+        .menu-price {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .menu-price .chip {
+            padding: 8px 18px;
+            min-height: 44px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .18s;
+            background: transparent;
+            color: var(--muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .menu-price .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+        .menu-price .chip.active {
+            border-color: currentColor;
+        }
+        .menu-price .chip[data-price="gratis"].active {
+            color: var(--free);
+            border-color: var(--free);
+            background: rgba(46,204,113,0.12);
+        }
+        .menu-price .chip[data-price="pago"].active {
+            color: var(--paid);
+            border-color: var(--paid);
+            background: rgba(230,126,34,0.12);
+        }
+        .menu-price .chip[data-price="all"].active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212,168,67,0.12);
+        }
+        .menu-price.all-active .chip[data-price="gratis"],
+        .menu-price.all-active .chip[data-price="pago"] {
+            border-color: rgba(46,204,113,0.4);
+            background: rgba(46,204,113,0.05);
+            color: var(--muted);
+        }
+        .menu-price.all-active .chip[data-price="gratis"] {
+            border-color: var(--free);
+            color: var(--free);
+            background: rgba(46,204,113,0.1);
+        }
+        .menu-price.all-active .chip[data-price="pago"] {
+            border-color: var(--paid);
+            color: var(--paid);
+            background: rgba(230,126,34,0.1);
+        }
+
+        /* === INTERESES === */
+        .menu-interest .chip {
+            padding: 8px 18px;
+            min-height: 44px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .18s;
+            background: transparent;
+            color: var(--muted);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        .menu-interest .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+        .menu-interest .chip.active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212,168,67,0.15);
+        }
+
+        /* === FOOTER DEL MENÚ === */
+        .menu-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .menu-footer-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border);
+            color: #ddd;
+            padding: 12px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: background .2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 48px;
+        }
+        .menu-footer-btn:hover { background: rgba(255,255,255,0.12); }
+
+        /* ===== LAYOUT PRINCIPAL ===== */
         .main {
             display: flex;
             flex: 1;
@@ -537,17 +693,9 @@
             transition: all .18s;
             position: relative;
         }
-        .pcard:hover {
-            border-color: rgba(255, 255, 255, .15);
-            transform: translateX(2px);
-        }
-        .pcard.active {
-            border-color: var(--gold);
-            box-shadow: inset 0 0 0 1px var(--gold);
-        }
-        .pcard.interesa {
-            box-shadow: inset 0 0 0 1px rgba(212, 168, 67, .55);
-        }
+        .pcard:hover { border-color: rgba(255,255,255,0.15); transform: translateX(2px); }
+        .pcard.active { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+        .pcard.interesa { box-shadow: inset 0 0 0 1px rgba(212,168,67,0.55); }
         .pcard.interesa::after {
             content: '★ Me interesa';
             position: absolute;
@@ -555,7 +703,7 @@
             right: 9px;
             font-size: .6rem;
             color: var(--gold);
-            background: rgba(212, 168, 67, .18);
+            background: rgba(212,168,67,0.18);
             padding: 2px 7px;
             border-radius: 9px;
         }
@@ -582,7 +730,7 @@
             justify-content: center;
             font-size: .9rem;
             flex-shrink: 0;
-            background: rgba(255, 255, 255, .06);
+            background: rgba(255,255,255,0.06);
         }
         .pname {
             font-size: .82rem;
@@ -604,14 +752,8 @@
             text-transform: uppercase;
             letter-spacing: .05em;
         }
-        .b-free {
-            background: rgba(46, 204, 113, .18);
-            color: var(--free);
-        }
-        .b-paid {
-            background: rgba(230, 126, 34, .18);
-            color: var(--paid);
-        }
+        .b-free { background: rgba(46,204,113,0.18); color: var(--free); }
+        .b-paid { background: rgba(230,126,34,0.18); color: var(--paid); }
         .pdesc {
             font-size: .71rem;
             color: var(--muted);
@@ -644,14 +786,11 @@
             transition: all .18s;
             flex-shrink: 0;
         }
-        .pvbtn:hover {
-            border-color: var(--gold);
-            color: var(--gold);
-        }
+        .pvbtn:hover { border-color: var(--gold); color: var(--gold); }
         .pcard.interesa .pvbtn {
             border-color: var(--gold);
             color: var(--gold);
-            background: rgba(212, 168, 67, .12);
+            background: rgba(212,168,67,0.12);
         }
         .no-res {
             padding: 40px 16px;
@@ -659,9 +798,16 @@
             color: var(--muted);
             font-size: .82rem;
         }
+        .no-res code {
+            background: rgba(255,255,255,0.06);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: .8rem;
+            color: var(--gold);
+        }
         .no-res button {
             margin-top: 10px;
-            background: rgba(212, 168, 67, .12);
+            background: rgba(212,168,67,0.12);
             border: 1px solid var(--gold);
             color: var(--gold);
             padding: 6px 14px;
@@ -676,6 +822,7 @@
             z-index: 1;
         }
 
+        /* ===== MARCADORES MAPA ===== */
         .mi {
             width: 36px;
             height: 36px;
@@ -685,17 +832,11 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            border: 2px solid rgba(255, 255, 255, .3);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, .4);
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.4);
         }
-        .mi .inn {
-            transform: rotate(45deg);
-            font-size: 14px;
-            line-height: 1;
-        }
-        .mi-user {
-            background: linear-gradient(135deg, #3498db, #1a6aa8);
-        }
+        .mi .inn { transform: rotate(45deg); font-size: 14px; line-height: 1; }
+        .mi-user { background: linear-gradient(135deg, #3498db, #1a6aa8); }
         .mi-count {
             position: absolute;
             top: -6px;
@@ -711,22 +852,16 @@
             align-items: center;
             justify-content: center;
             transform: rotate(45deg);
-            border: 1px solid rgba(0, 0, 0, .3);
+            border: 1px solid rgba(0,0,0,0.3);
         }
         .leaflet-popup-content-wrapper {
             background: var(--panel);
             color: var(--text);
             border-radius: 9px;
         }
-        .leaflet-popup-tip {
-            background: var(--panel);
-        }
-        .leaflet-control-attribution {
-            display: none;
-        }
-        .venue-pop {
-            min-width: 180px;
-        }
+        .leaflet-popup-tip { background: var(--panel); }
+        .leaflet-control-attribution { display: none; }
+        .venue-pop { min-width: 180px; }
         .venue-pop b {
             font-size: .76rem;
             display: block;
@@ -739,13 +874,10 @@
             border-top: 1px solid var(--border);
             cursor: pointer;
         }
-        .venue-pop .vp-item:hover {
-            color: var(--gold);
-        }
-        .venue-pop .vp-item:first-of-type {
-            border-top: none;
-        }
+        .venue-pop .vp-item:hover { color: var(--gold); }
+        .venue-pop .vp-item:first-of-type { border-top: none; }
 
+        /* ===== PANEL DE DETALLE ===== */
         .dpanel {
             position: absolute;
             bottom: 0;
@@ -753,18 +885,16 @@
             right: 0;
             z-index: 1000;
             background: var(--panel);
-            border-top: 2px solid rgba(26, 106, 168, .55);
+            border-top: 2px solid rgba(26,106,168,0.55);
             transform: translateY(105%);
-            transition: transform .3s cubic-bezier(.22, 1, .36, 1);
+            transition: transform .3s cubic-bezier(.22,1,.36,1);
             max-height: 75%;
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: var(--card) transparent;
-            box-shadow: 0 -8px 40px rgba(0, 0, 0, .45);
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.45);
         }
-        .dpanel.open {
-            transform: translateY(0);
-        }
+        .dpanel.open { transform: translateY(0); }
         .dhead {
             position: sticky;
             top: 0;
@@ -786,7 +916,7 @@
             max-width: 72%;
         }
         .dclosebtn {
-            background: rgba(255, 255, 255, .08);
+            background: rgba(255,255,255,0.08);
             border: 1px solid var(--border);
             color: var(--muted);
             cursor: pointer;
@@ -797,13 +927,8 @@
             transition: background .15s;
             flex-shrink: 0;
         }
-        .dclosebtn:hover {
-            background: rgba(255, 255, 255, .16);
-            color: var(--text);
-        }
-        .dbody {
-            padding: 15px 20px 20px;
-        }
+        .dclosebtn:hover { background: rgba(255,255,255,0.16); color: var(--text); }
+        .dbody { padding: 15px 20px 20px; }
         .dgrid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -815,9 +940,7 @@
             border-radius: 9px;
             padding: 9px 12px;
         }
-        .dblock.wide {
-            grid-column: 1 / -1;
-        }
+        .dblock.wide { grid-column: 1 / -1; }
         .dlabel {
             font-size: .58rem;
             text-transform: uppercase;
@@ -850,7 +973,7 @@
             flex-wrap: wrap;
         }
         .dother button {
-            background: rgba(255, 255, 255, .06);
+            background: rgba(255,255,255,0.06);
             border: 1px solid var(--border);
             color: var(--muted);
             font-size: .68rem;
@@ -859,14 +982,11 @@
             cursor: pointer;
             font-family: 'DM Sans', sans-serif;
         }
-        .dother button:hover {
-            border-color: var(--gold);
-            color: var(--gold);
-        }
+        .dother button:hover { border-color: var(--gold); color: var(--gold); }
         .dother button.cur {
             border-color: var(--gold);
             color: var(--gold);
-            background: rgba(212, 168, 67, .12);
+            background: rgba(212,168,67,0.12);
             cursor: default;
         }
         .dactions {
@@ -892,10 +1012,7 @@
             transition: filter .18s, transform .15s;
             text-decoration: none;
         }
-        .dbtn:hover {
-            filter: brightness(1.12);
-            transform: translateY(-1px);
-        }
+        .dbtn:hover { filter: brightness(1.12); transform: translateY(-1px); }
         .dbtn-walk {
             background: linear-gradient(135deg, #1a73e8, #0d5dbf);
             color: #fff;
@@ -905,7 +1022,7 @@
             color: #fff;
         }
         .dbtn-official {
-            background: rgba(255, 255, 255, .1);
+            background: rgba(255,255,255,0.1);
             border: 1px solid var(--border) !important;
             color: var(--text);
         }
@@ -914,16 +1031,14 @@
             color: #fff;
         }
         .dbtn-int {
-            background: rgba(212, 168, 67, .15);
-            border: 1px solid rgba(212, 168, 67, .4) !important;
+            background: rgba(212,168,67,0.15);
+            border: 1px solid rgba(212,168,67,0.4) !important;
             color: var(--gold);
         }
         .dbtn-int.done {
-            background: rgba(212, 168, 67, .32);
+            background: rgba(212,168,67,0.32);
             color: #ffe6a8;
         }
-
-        /* ===== IMAGEN DEL EVENTO ===== */
         .devent-image {
             margin-top: 13px;
         }
@@ -931,42 +1046,38 @@
             width: 100%;
             max-height: 170px;
             object-fit: contain;
-            background: rgba(255, 255, 255, .04);
+            background: rgba(255,255,255,0.04);
             border-radius: 10px;
             cursor: zoom-in;
             display: block;
             transition: filter .15s;
         }
-        .devent-image img:hover {
-            filter: brightness(1.08);
-        }
+        .devent-image img:hover { filter: brightness(1.08); }
 
-        /* ===== VISOR DE IMAGEN A PANTALLA COMPLETA ===== */
+        /* ===== LIGHTBOX ===== */
         .lightbox-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, .92);
+            background: rgba(0,0,0,.92);
             z-index: 20000;
             display: none;
             align-items: center;
             justify-content: center;
             padding: 50px 20px;
         }
-        .lightbox-overlay.open {
-            display: flex;
-        }
+        .lightbox-overlay.open { display: flex; }
         .lightbox-overlay img {
             max-width: 100%;
             max-height: 100%;
             border-radius: 10px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+            box-shadow: 0 20px 60px rgba(0,0,0,.6);
         }
         .lightbox-close {
             position: fixed;
             top: 16px;
             right: 18px;
-            background: rgba(255, 255, 255, .1);
-            border: 1px solid rgba(255, 255, 255, .25);
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.25);
             color: #fff;
             font-size: 1.7rem;
             line-height: 1;
@@ -979,81 +1090,50 @@
             justify-content: center;
             transition: background .15s;
         }
-        .lightbox-close:hover {
-            background: rgba(255, 255, 255, .24);
-        }
+        .lightbox-close:hover { background: rgba(255,255,255,0.24); }
 
-        @media (min-width: 701px) {
-            .filters {
-                flex-direction: row;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 7px;
-                row-gap: 8px;
-            }
-            .frow,
-            .frow-status-left {
-                display: contents;
-            }
-            #fcount {
-                margin-left: auto;
-            }
-        }
-
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 700px) {
-            .sidebar {
-                display: none;
-            }
-            .dpanel {
-                left: 0;
-                max-height: 88%;
-            }
-            .dgrid {
-                grid-template-columns: 1fr 1fr;
-            }
-            #map {
-                flex: 1;
-                min-height: 52vh;
-            }
-            body.detail-open .filters {
-                display: none;
-            }
-            .fdiv {
-                display: none;
-            }
-            .hdr-actions .hdr-btn {
-                font-size: .65rem;
-                padding: 4px 10px;
-            }
+            .sidebar { display: none; }
+            .dpanel { left: 0; max-height: 88%; }
+            .dgrid { grid-template-columns: 1fr 1fr; }
+            #map { flex: 1; min-height: 52vh; }
+            body.detail-open .filters { display: none; }
+            .hdr-actions .hdr-btn:not(.hamburger) { font-size: .65rem; padding: 4px 10px; }
+            .menu-drawer { width: 92%; max-width: 360px; }
+            .menu-week .wk-label { min-width: 100px; font-size: 0.85rem; }
+            .menu-week .wk-nav { font-size: 1rem; padding: 6px 12px; min-height: 40px; }
+        }
+        @media (min-width: 701px) {
+            .menu-drawer { max-width: 460px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ===== NOTIFICATIONS ===== -->
+    <!-- ===== NOTIFICACIONES ===== -->
     <div id="notif-container" role="alert" aria-live="polite"></div>
 
-    <!-- ===== VISOR DE IMAGEN A PANTALLA COMPLETA ===== -->
+    <!-- ===== LIGHTBOX ===== -->
     <div class="lightbox-overlay" id="lightbox-overlay">
         <button class="lightbox-close" id="lightbox-close" aria-label="Cerrar imagen">&times;</button>
         <img id="lightbox-img" src="" alt="">
     </div>
 
-    <!-- ===== MODALS ===== -->
-    <!-- Modal: Aceptación de Política de Privacidad (solo se pide al activar la ubicación) -->
+    <!-- ===== MODALES ===== -->
     <div class="modal-overlay" id="modal-aceptar-politica">
         <div class="modal-box">
             <h2>📋 Política de Privacidad</h2>
-            <p>Esta aplicación (Düsseldorf — Agenda de Eventos) utiliza tu ubicación para mostrarte rutas a los eventos y almacena localmente tus preferencias (eventos marcados como "Me interesa") y una caché de geocodificación para mejorar el rendimiento.</p>
+            <p>Esta aplicación utiliza tu ubicación para mostrarte rutas y almacena localmente tus preferencias y caché de geocodificación.</p>
             <p><strong>Datos tratados:</strong></p>
             <ul>
-                <li><strong>Ubicación geográfica</strong> (solo con tu consentimiento explícito, no se almacena).</li>
+                <li><strong>Ubicación</strong> (solo con consentimiento, no se almacena).</li>
                 <li><strong>Preferencias</strong> (eventos favoritos) guardadas en tu navegador.</li>
-                <li><strong>Caché de direcciones</strong> para agilizar la carga del mapa.</li>
+                <li><strong>Caché de direcciones</strong> para agilizar el mapa.</li>
                 <li><strong>IP y metadatos</strong> compartidos con servicios de terceros (Google Fonts, Leaflet CDN, CartoDB, Photon API, Google Maps).</li>
             </ul>
-            <p>Puedes gestionar y eliminar tus datos en cualquier momento desde el botón <strong>“Gestionar mis datos”</strong> en la cabecera.</p>
-            <p>Al hacer clic en <strong>“Aceptar”</strong>, aceptas el tratamiento de tus datos según se describe en la <a href="#" onclick="event.preventDefault();openModal('modal-privacidad');">política de privacidad completa</a>.</p>
+            <p>Puedes gestionar y eliminar tus datos desde <strong>“Gestionar mis datos”</strong>.</p>
+            <p>Al hacer clic en <strong>“Aceptar”</strong>, aceptas el tratamiento según la <a href="#" onclick="event.preventDefault();openModal('modal-privacidad');">política de privacidad completa</a>.</p>
             <div class="actions-row">
                 <button class="btn-primary" id="btn-aceptar-politica">Aceptar</button>
                 <button class="btn-secondary" id="btn-cancelar-politica">Cancelar</button>
@@ -1061,33 +1141,23 @@
         </div>
     </div>
 
-    <!-- Modal: Política de Privacidad (completa) -->
     <div class="modal-overlay" id="modal-privacidad">
         <div class="modal-box">
             <h2>📋 Política de Privacidad</h2>
-            <p><strong>Finalidades:</strong> Mostrar eventos culturales y de ocio en Düsseldorf, facilitar la orientación geográfica y permitir al usuario guardar sus intereses (eventos favoritos).</p>
-            <p><strong>Base legal:</strong> Consentimiento del interesado (art. 6.1.a GDPR) para el uso de ubicación y almacenamiento de preferencias.</p>
-            <p><strong>Plazos de conservación:</strong> Los datos de ubicación no se almacenan; las preferencias (intereses) y la caché de geocodificación se guardan localmente en tu navegador hasta que decidas eliminarlos (máximo 30 días para la caché).</p>
-            <p><strong>Derechos:</strong> Puedes acceder, rectificar, suprimir, limitar el tratamiento y oponerte al uso de tus datos mediante el botón <em>“Gestionar mis datos”</em> disponible en la cabecera.</p>
-            <p><strong>Servicios de terceros utilizados:</strong></p>
-            <ul>
-                <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com) – IP del usuario. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
-                <li><strong>Leaflet CDN</strong> (unpkg.com) – IP del usuario. <a href="https://unpkg.com/about" target="_blank" rel="noopener">Información</a></li>
-                <li><strong>CartoDB</strong> (basemaps.cartocdn.com) – IP, para cargar el mapa base. <a href="https://carto.com/privacy/" target="_blank" rel="noopener">Política de privacidad</a></li>
-                <li><strong>Photon API</strong> (photon.komoot.io) – direcciones buscadas e IP. <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
-                <li><strong>Google Maps</strong> (enlaces de navegación) – al hacer clic, se transfieren datos a Google según su política. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
-            </ul>
-            <p>Estas transferencias pueden implicar el envío de datos a países fuera del EEE. Al utilizar la aplicación, aceptas estas transferencias.</p>
+            <p><strong>Finalidades:</strong> Mostrar eventos culturales y de ocio en Düsseldorf, facilitar la orientación geográfica y permitir guardar intereses.</p>
+            <p><strong>Usuarios finales:</strong> Exclusivo para el grupo de WhatsApp "Los Locos del Tandem".</p>
+            <p><strong>Base legal:</strong> Consentimiento del interesado (art. 6.1.a GDPR).</p>
+            <p><strong>Plazos:</strong> Ubicación no se almacena; preferencias y caché se guardan localmente hasta que decidas eliminarlos (máx. 30 días para caché).</p>
+            <p><strong>Derechos:</strong> Acceder, rectificar, suprimir, limitar y oponerte mediante “Gestionar mis datos”.</p>
+            <p><strong>Servicios de terceros:</strong> Google Fonts, Leaflet CDN, CartoDB, Photon API, Google Maps. Pueden implicar transferencias a países fuera del EEE.</p>
             <button class="btn-close-modal" onclick="closeModal('modal-privacidad')">Cerrar</button>
         </div>
     </div>
 
-    <!-- Modal: Consentimiento de Ubicación -->
     <div class="modal-overlay" id="modal-consentimiento">
         <div class="modal-box">
             <h2>📍 Uso de tu ubicación</h2>
-            <p>Para mostrarte la ruta a los eventos y orientarte en el mapa, necesitamos conocer tu posición aproximada. Esta información <strong>no se almacena</strong> en nuestros servidores; solo se usa en tu navegador para calcular rutas.</p>
-            <p>Puedes activar o desactivar esta funcionalidad en cualquier momento desde el botón <em>“Mi Ubicación”</em>.</p>
+            <p>Para mostrarte la ruta a los eventos y orientarte en el mapa, necesitamos tu posición aproximada. <strong>No se almacena</strong> en servidores, solo se usa en tu navegador.</p>
             <div class="checkbox-row">
                 <input type="checkbox" id="chk-high-accuracy">
                 <label for="chk-high-accuracy">Usar alta precisión (puede consumir más batería)</label>
@@ -1099,11 +1169,10 @@
         </div>
     </div>
 
-    <!-- Modal: Gestión de Datos -->
     <div class="modal-overlay" id="modal-gestion">
         <div class="modal-box">
             <h2>🔐 Gestionar mis datos</h2>
-            <p>Aquí puedes ver y eliminar los datos que almacenamos localmente en tu navegador.</p>
+            <p>Aquí puedes ver y eliminar los datos almacenados localmente en tu navegador.</p>
             <p><strong>Tus intereses (eventos favoritos):</strong></p>
             <ul class="data-list" id="interest-list"></ul>
             <p><strong>Datos almacenados:</strong></p>
@@ -1123,7 +1192,7 @@
     <!-- ===== HEADER ===== -->
     <header>
         <div class="hdr-left">
-            <h1>Düsseldorf — <span>Agenda de Eventos</span></h1>
+            <h1>Los Locos del Tandem — <span>Eventos</span></h1>
             <p>Qué hacer, cuándo y dónde</p>
         </div>
         <div class="hdr-actions">
@@ -1135,51 +1204,74 @@
                 </svg>
                 Mi Ubicación
             </button>
-            <button class="hdr-btn" id="btn-privacidad">📋 Política de Privacidad</button>
-            <button class="hdr-btn" id="btn-gestion">🔐 Gestionar mis datos</button>
+            <button class="hdr-btn hamburger" id="menu-toggle" aria-label="Abrir menú de filtros">☰</button>
         </div>
     </header>
 
-    <!-- ===== FILTERS ===== -->
-    <div class="filters" id="filters">
-        <div class="frow">
-            <span class="flabel">Semana</span>
-            <button class="chip wk-nav" id="wk-prev" title="Semana anterior">‹</button>
-            <button class="chip wk-label active" id="wk-label"></button>
-            <button class="chip wk-nav" id="wk-next" title="Semana siguiente">›</button>
-            <button class="chip wk-all" id="wk-all">Todas</button>
-        </div>
-        <div class="fdiv"></div>
-        <div class="frow" id="day-chips">
-            <span class="flabel">Día</span>
-            <button class="chip day-chip active" data-day="all">Todos</button>
-            <button class="chip day-chip" data-day="1">Lun</button>
-            <button class="chip day-chip" data-day="2">Mar</button>
-            <button class="chip day-chip" data-day="3">Mié</button>
-            <button class="chip day-chip" data-day="4">Jue</button>
-            <button class="chip day-chip" data-day="5">Vie</button>
-            <button class="chip day-chip" data-day="6">Sáb</button>
-            <button class="chip day-chip" data-day="0">Dom</button>
-        </div>
-        <div class="fdiv"></div>
-        <div class="frow" id="type-chips">
-            <span class="flabel">Tipo</span>
-            <button class="chip type-chip active" data-type="all">Todos</button>
-        </div>
-        <div class="fdiv"></div>
-        <div class="frow" id="price-chips">
-            <span class="flabel">Precio</span>
-            <button class="chip price-chip active" data-price="all">Todos</button>
-            <button class="chip price-chip" data-price="gratis">Gratis</button>
-            <button class="chip price-chip" data-price="pago">De pago</button>
-        </div>
-        <div class="fdiv"></div>
-        <div class="frow frow-status">
-            <div class="frow-status-left">
-                <button class="chip interest-chip" id="f-interest">★ Me interesa</button>
-                <span id="geo-status"></span>
+    <!-- ===== MENÚ HAMBURGUESA ===== -->
+    <div class="menu-overlay" id="menu-overlay">
+        <div class="menu-drawer" id="menu-drawer">
+            <div class="menu-header">
+                <h2>Filtros</h2>
+                <button class="menu-close" id="menu-close" aria-label="Cerrar menú">×</button>
             </div>
-            <span id="fcount">— eventos</span>
+            <div class="menu-body">
+                <!-- SEMANA -->
+                <div class="menu-section">
+                    <div class="menu-label">Semana</div>
+                    <div class="menu-week">
+                        <button class="wk-nav" id="wk-prev-menu">‹</button>
+                        <span class="wk-label" id="wk-label-menu"></span>
+                        <button class="wk-nav" id="wk-next-menu">›</button>
+                        <button class="wk-all" id="wk-all-menu">Todas</button>
+                    </div>
+                </div>
+
+                <!-- DÍAS -->
+                <div class="menu-section">
+                    <div class="menu-label">Día</div>
+                    <div class="menu-days" id="day-chips-menu">
+                        <button class="chip day-chip active" data-day="all">Todos</button>
+                        <button class="chip day-chip" data-day="1">Lun</button>
+                        <button class="chip day-chip" data-day="2">Mar</button>
+                        <button class="chip day-chip" data-day="3">Mié</button>
+                        <button class="chip day-chip" data-day="4">Jue</button>
+                        <button class="chip day-chip" data-day="5">Vie</button>
+                        <button class="chip day-chip" data-day="6">Sáb</button>
+                        <button class="chip day-chip" data-day="0">Dom</button>
+                    </div>
+                </div>
+
+                <!-- TIPOS (Categoría) -->
+                <div class="menu-section">
+                    <div class="menu-label">Categoría</div>
+                    <div class="menu-types" id="type-chips-menu">
+                        <!-- Se genera dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- PRECIO -->
+                <div class="menu-section">
+                    <div class="menu-label">Precio</div>
+                    <div class="menu-price" id="price-chips-menu">
+                        <button class="chip price-chip active" data-price="all">Todos</button>
+                        <button class="chip price-chip" data-price="gratis">Gratis</button>
+                        <button class="chip price-chip" data-price="pago">De pago</button>
+                    </div>
+                </div>
+
+                <!-- INTERESES -->
+                <div class="menu-section menu-interest">
+                    <button class="chip interest-chip" id="f-interest-menu">★ Solo eventos que me interesan</button>
+                </div>
+
+                <!-- FOOTER con Política y Gestión -->
+                <div class="menu-footer">
+                    <button class="menu-footer-btn" id="btn-locate-menu">📍 Mi Ubicación</button>
+                    <button class="menu-footer-btn" id="btn-privacidad-menu">📋 Política de Privacidad</button>
+                    <button class="menu-footer-btn" id="btn-gestion-menu">🔐 Gestionar mis datos</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1199,34 +1291,24 @@
     <script>
         // ========================================================================
         //  SEGURIDAD Y GDPR – IMPLEMENTACIÓN
-        //  - Sanitización de salidas (escapeHTML)
-        //  - Notificaciones UI en lugar de alert()
-        //  - Modales para política de privacidad, consentimiento y gestión de datos
-        //  - Caducidad de caché (30 días)
-        //  - Validación del JSON
-        //  - CSP, X-Frame-Options, X-Content-Type-Options (meta)
-        //  - Integridad de recursos externos (SRI)
-        //  - Aceptación obligatoria de política de privacidad al inicio con botón Cancelar
-        //  - Bloqueo de la app si se cancela
-        //  - Revocación de consentimiento desde gestión de datos
         // ========================================================================
 
-        // ===== FUNCIÓN DE ESCAPE (XSS) =====
         function escapeHTML(str) {
             if (str == null) return '';
-            var map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
+            var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return String(str).replace(/[&<>"']/g, function(m) { return map[m]; });
         }
-
         function escapeAttr(str) {
             if (str == null) return '';
             return String(str).replace(/['"]/g, function(m) { return m === '"' ? '&quot;' : '&#039;'; });
+        }
+        function safeHref(url) {
+            if (!url) return '';
+            try {
+                var u = new URL(String(url), location.href);
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+                return escapeAttr(u.href);
+            } catch (e) { return ''; }
         }
 
         // ===== NOTIFICACIONES =====
@@ -1244,18 +1326,16 @@
             close.addEventListener('click', function() { dismissNotif(el); });
             setTimeout(function() { dismissNotif(el); }, 8000);
         }
-
         function dismissNotif(el) {
             if (!el || !el.parentNode) return;
             el.style.animation = 'notifOut 0.25s ease forwards';
             setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
         }
 
-        // ===== VISOR DE IMAGEN A PANTALLA COMPLETA =====
+        // ===== LIGHTBOX =====
         window.openLightbox = function(src, alt) {
-            var img = document.getElementById('lightbox-img');
-            img.src = src;
-            img.alt = alt;
+            document.getElementById('lightbox-img').src = src;
+            document.getElementById('lightbox-img').alt = alt;
             document.getElementById('lightbox-overlay').classList.add('open');
         };
         function closeLightbox() {
@@ -1271,80 +1351,40 @@
         });
 
         // ===== MODALES =====
-        function openModal(id) {
-            document.getElementById(id).classList.add('open');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('open');
-        }
-
+        function openModal(id) { document.getElementById(id).classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
         document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
             overlay.addEventListener('click', function(e) {
-                if (e.target === overlay) {
-                    overlay.classList.remove('open');
-                }
+                if (e.target === overlay) overlay.classList.remove('open');
             });
         });
 
-        // ===== ACEPTACIÓN DE POLÍTICA DE PRIVACIDAD =====
+        // ===== CONSENTIMIENTO POLÍTICA =====
         var POLITICA_ACEPTADA_KEY = 'dus_politica_aceptada_v1';
-
-        function isPoliticaAceptada() {
-            return localStorage.getItem(POLITICA_ACEPTADA_KEY) === 'true';
-        }
-
+        function isPoliticaAceptada() { return localStorage.getItem(POLITICA_ACEPTADA_KEY) === 'true'; }
         function acceptPolitica() {
             localStorage.setItem(POLITICA_ACEPTADA_KEY, 'true');
             closeModal('modal-aceptar-politica');
-            notify('Has aceptado la política de privacidad. Pulsa de nuevo "Mi Ubicación" para continuar.', 'success');
+            notify('Has aceptado la política de privacidad. Pulsa "Mi Ubicación" para continuar.', 'success');
         }
-
         function cancelPolitica() {
             closeModal('modal-aceptar-politica');
-            notify('De acuerdo: no se activará la ubicación en tiempo real. Puedes activarla cuando quieras desde "Mi Ubicación".', 'info');
+            notify('No se activará la ubicación en tiempo real. Puedes activarla cuando quieras.', 'info');
         }
-
-        function stopLiveLocation() {
-            if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-            if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
-            if (userCircle) { map.removeLayer(userCircle); userCircle = null; }
-            userPos = null;
-        }
-
         function revocarConsentimiento() {
             localStorage.removeItem(POLITICA_ACEPTADA_KEY);
             closeModal('modal-gestion');
             stopLiveLocation();
-            notify('Has revocado el consentimiento de ubicación. La próxima vez que actives "Mi Ubicación" se te volverá a preguntar.', 'info');
+            notify('Has revocado el consentimiento de ubicación.', 'info');
         }
 
-        // Botones
         document.getElementById('btn-aceptar-politica').addEventListener('click', acceptPolitica);
         document.getElementById('btn-cancelar-politica').addEventListener('click', cancelPolitica);
         document.getElementById('btn-revocar-consentimiento').addEventListener('click', function() {
-            if (confirm('¿Estás seguro de que deseas revocar el consentimiento de ubicación? Se detendrá el seguimiento en tiempo real si está activo.')) {
-                revocarConsentimiento();
-            }
+            if (confirm('¿Estás seguro de revocar el consentimiento de ubicación?')) revocarConsentimiento();
         });
 
-        // La política de privacidad NUNCA se pide de entrada: solo se pide cuando el
-        // usuario intenta activar la ubicación en tiempo real (ver handler de btn-locate).
-        // Por defecto la aceptación está denegada (isPoliticaAceptada() empieza en false),
-        // y si se cancela o se revoca, la app sigue funcionando con normalidad: simplemente
-        // no hay ubicación en tiempo real.
-
-        // ===== BOTONES DE CABECERA =====
-        // Leer la política o gestionar los datos propios no requiere haber aceptado
-        // nada de antemano: solo activar la ubicación pide el consentimiento.
-        document.getElementById('btn-privacidad').addEventListener('click', function() {
-            openModal('modal-privacidad');
-        });
-
-        document.getElementById('btn-gestion').addEventListener('click', function() {
-            openModal('modal-gestion');
-            refreshGestionModal();
-        });
+        // ===== BOTONES CABECERA (ya no hay política ni gestión) =====
 
         // ===== GESTIÓN DE DATOS =====
         function refreshGestionModal() {
@@ -1359,8 +1399,6 @@
                 }).join('');
             }
             document.getElementById('interest-count').textContent = interests.length;
-            // Solo contamos lo geocodificado en caliente contra Photon: la tabla
-            // precargada (VENUE_COORDS) no es "cach\u00e9" borrable, viene con la app.
             var cacheKeys = Object.keys(geocache).filter(function(k) {
                 return geocache[k] !== null && geocache[k] !== undefined && !VENUE_COORDS.hasOwnProperty(k);
             });
@@ -1368,28 +1406,27 @@
         }
 
         document.getElementById('btn-borrar-todo').addEventListener('click', function() {
-            if (confirm('¿Estás seguro de que deseas borrar todos tus datos (intereses y caché)?')) {
+            if (confirm('¿Borrar todos tus datos (intereses y caché)?')) {
                 interestSet.clear();
                 saveInterest();
                 localStorage.removeItem(GEOCACHE_KEY);
-                loadGeocache(); // vuelve a sembrar solo las coordenadas precargadas del propio sitio
+                loadGeocache();
                 renderList();
                 renderMarkers();
                 refreshGestionModal();
                 notify('Todos tus datos han sido eliminados.', 'success');
             }
         });
-
         document.getElementById('btn-borrar-cache').addEventListener('click', function() {
             localStorage.removeItem(GEOCACHE_KEY);
-            loadGeocache(); // vuelve a sembrar solo las coordenadas precargadas del propio sitio
+            loadGeocache();
             renderMarkers();
             refreshGestionModal();
             notify('Caché de geocodificación borrada.', 'success');
         });
 
         // ========================================================================
-        //  CONFIGURACIÓN ORIGINAL
+        //  CONFIGURACIÓN Y ESTADO
         // ========================================================================
         var CITY = "Düsseldorf";
         var CITY_CENTER = [51.2277, 6.7735];
@@ -1403,26 +1440,26 @@
             "deporte": "⚽",
             "mercado": "🛍️",
             "familia": "👨‍👩‍👧",
-            "fiesta": "🎉"
+            "fiesta": "🎉",
+            "picnic": "🧺",
+            "grill": "🔥",
+            "encuentro": "🤝"
         };
         var TYPE_EMOJI_FALLBACK = "📌";
-        // Nombres visibles para el usuario cuando difieren del valor crudo del JSON
-        // (el valor crudo, p.ej. "comida", sigue siendo el que se usa para filtrar).
-        var TYPE_LABELS = { "comida": "Gastronomía" };
-        function typeLabel(t) {
-            if (TYPE_LABELS[t]) return TYPE_LABELS[t];
-            return t.charAt(0).toUpperCase() + t.slice(1);
-        }
-        var TYPE_COLORS = ["#4ECBA0", "#E07060", "#5DADE2", "#BB8FCE", "#F4D03F", "#EB984E", "#48C9B0", "#EC7063", "#85C1E9",
-            "#82E0AA"
-        ];
+        var TYPE_LABELS = {
+            "comida": "Gastronomía",
+            "picnic": "Picnic",
+            "grill": "Grill",
+            "encuentro": "Encuentro"
+        };
+        function typeLabel(t) { return TYPE_LABELS[t] || t.charAt(0).toUpperCase() + t.slice(1); }
+        var TYPE_COLORS = ["#4ECBA0","#E07060","#5DADE2","#BB8FCE","#F4D03F","#EB984E","#48C9B0","#EC7063","#85C1E9","#82E0AA", "#F39C12", "#E67E22", "#2ECC71"];
         var DAY_ABBR = { 0: "Dom", 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb" };
-        var MONTH_ABBR = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        var MONTH_ABBR = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
         var INTEREST_KEY = "dus_ev_interes_v1";
         var GEOCACHE_KEY = "dus_ev_geocache_v1";
-        var GEOCACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 días
+        var GEOCACHE_TTL = 30 * 24 * 60 * 60 * 1000;
 
-        // ===== ESTADO =====
         var EVENTS = [];
         var interestSet = new Set();
         var geocache = {};
@@ -1432,12 +1469,8 @@
         var typeSelected = new Set();
         var priceFilter = "all";
         var interestOnly = false;
-        var activeId = null,
-            markers = {},
-            userPos = null;
-        var userMarker = null,
-            userCircle = null,
-            watchId = null;
+        var activeId = null, markers = {}, userPos = null;
+        var userMarker = null, userCircle = null, watchId = null;
         var consentGiven = false;
 
         // ===== UTILIDADES =====
@@ -1448,32 +1481,23 @@
             x.setDate(x.getDate() + diff);
             return x;
         }
-
-        function addDays(d, n) { var x = new Date(d);
-            x.setDate(x.getDate() + n); return x; }
-
-        function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() ===
-                b.getDate(); }
-
+        function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+        function sameDay(a, b) { return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
         function fmtDayMonth(d) { return d.getDate() + " " + MONTH_ABBR[d.getMonth()]; }
-
         function slug(s) {
             return (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
                 .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
         }
-
         function typeColor(t) {
             var h = 0;
             for (var i = 0; i < t.length; i++) h = (h + t.charCodeAt(i) * 7) % TYPE_COLORS.length;
             return TYPE_COLORS[h];
         }
-
         function typeEmoji(t) { return TYPE_EMOJI[t] || TYPE_EMOJI_FALLBACK; }
 
         // ===== CARGA DE DATOS =====
         function buildEvent(raw) {
-            var fecha = raw.fecha,
-                hora = raw.horaInicio || "00:00";
+            var fecha = raw.fecha, hora = raw.horaInicio || "00:00";
             var dt = new Date(fecha + "T" + hora + ":00");
             var id = slug(raw.nombre) + "_" + fecha + "_" + hora.replace(":", "");
             return {
@@ -1499,17 +1523,15 @@
         function restoreInterestState() {
             var stored = localStorage.getItem(INTEREST_KEY);
             if (stored === null) {
-                interestSet = new Set(EVENTS.filter(function(e) { return e.meInteresaDefault; }).map(function(e) { return e
-                        .id; }));
+                interestSet = new Set(EVENTS.filter(function(e) { return e.meInteresaDefault; }).map(function(e) { return e.id; }));
                 localStorage.setItem(INTEREST_KEY, JSON.stringify(Array.from(interestSet)));
             } else {
                 interestSet = new Set(JSON.parse(stored));
             }
         }
-
         function saveInterest() { localStorage.setItem(INTEREST_KEY, JSON.stringify(Array.from(interestSet))); }
 
-        // ===== CACHÉ CON CADUCIDAD =====
+        // ===== CACHÉ =====
         function loadGeocache() {
             try {
                 var raw = localStorage.getItem(GEOCACHE_KEY);
@@ -1520,35 +1542,19 @@
                     Object.keys(parsed).forEach(function(k) {
                         var entry = parsed[k];
                         if (entry && typeof entry === 'object' && entry.timestamp) {
-                            if (now - entry.timestamp < GEOCACHE_TTL) {
-                                valid[k] = entry.data;
-                            }
+                            if (now - entry.timestamp < GEOCACHE_TTL) valid[k] = entry.data;
                         } else {
                             valid[k] = entry;
                         }
                     });
                     geocache = valid;
-                    var toStore = {};
-                    Object.keys(geocache).forEach(function(k) {
-                        toStore[k] = { data: geocache[k], timestamp: Date.now() };
-                    });
-                    localStorage.setItem(GEOCACHE_KEY, JSON.stringify(toStore));
                 } else {
                     geocache = {};
                 }
-            } catch (e) {
-                geocache = {};
-            }
-            Object.keys(VENUE_COORDS).forEach(function(addr) {
-                geocache[addr] = VENUE_COORDS[addr];
-            });
-            var toStore = {};
-            Object.keys(geocache).forEach(function(k) {
-                toStore[k] = { data: geocache[k], timestamp: Date.now() };
-            });
-            localStorage.setItem(GEOCACHE_KEY, JSON.stringify(toStore));
+            } catch (e) { geocache = {}; }
+            Object.keys(VENUE_COORDS).forEach(function(addr) { geocache[addr] = VENUE_COORDS[addr]; });
+            saveGeocache();
         }
-
         function saveGeocache() {
             var toStore = {};
             Object.keys(geocache).forEach(function(k) {
@@ -1568,51 +1574,35 @@
 
         // ===== GEOCODIFICACIÓN =====
         function queryAddress(dir) {
-            var hasCity = /d.sseldorf/i.test(dir);
-            return hasCity ? dir : (dir + ", " + CITY + ", Alemania");
+            return /d.sseldorf/i.test(dir) ? dir : (dir + ", " + CITY + ", Alemania");
         }
-
         function geocodeAddress(direccion) {
             return new Promise(function(resolve) {
                 if (!direccion) { resolve(null); return; }
-                if (geocache[direccion] !== undefined && geocache[direccion] !== null) { resolve(geocache[direccion]);
-                    return; }
+                if (geocache[direccion] !== undefined && geocache[direccion] !== null) { resolve(geocache[direccion]); return; }
                 fetch("https://photon.komoot.io/api/?limit=1&q=" + encodeURIComponent(queryAddress(direccion)))
                     .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
                     .then(function(res) {
                         var f = res && res.features && res.features[0];
                         var pos = f ? { lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] } : null;
-                        if (!pos) {
-                            console.warn("No se pudo geolocalizar:", direccion);
-                        }
+                        if (!pos) console.warn("No se pudo geolocalizar:", direccion);
                         geocache[direccion] = pos;
                         saveGeocache();
                         resolve(pos);
                     })
-                    .catch(function(err) {
-                        console.error("Error geolocalizando \"" + direccion + "\":", err);
-                        resolve(null);
-                    });
+                    .catch(function(err) { console.error("Error geolocalizando \"" + direccion + "\":", err); resolve(null); });
             });
         }
 
         function startGeocodeQueue() {
-            var addrs = Array.from(new Set(EVENTS.filter(function(e) { return e.direccion; }).map(function(e) { return e
-                    .direccion; })));
+            var addrs = Array.from(new Set(EVENTS.filter(function(e) { return e.direccion; }).map(function(e) { return e.direccion; })));
             var pending = addrs.filter(function(a) { return geocache[a] === undefined; });
             var status = document.getElementById("geo-status");
-            if (!pending.length) { status.textContent = "";
-                renderMarkers(); return; }
-            var done = 0,
-                total = pending.length;
-
+            if (!pending.length) { if(status) status.textContent = ""; renderMarkers(); return; }
+            var done = 0, total = pending.length;
             function next() {
-                if (!pending.length) {
-                    status.textContent = "";
-                    renderMarkers();
-                    return;
-                }
-                status.textContent = "Localizando mapa… " + done + "/" + total;
+                if (!pending.length) { if(status) status.textContent = ""; renderMarkers(); return; }
+                if(status) status.textContent = "Localizando mapa… " + done + "/" + total;
                 var addr = pending.shift();
                 geocodeAddress(addr).then(function() {
                     done++;
@@ -1629,8 +1619,7 @@
         map.on("click", closeDetail);
 
         function makeIcon(color, emoji, count, active) {
-            var activeStyle = active ? "transform:scale(1.3) rotate(-45deg);box-shadow:0 0 0 3px rgba(255,255,255,.7);" :
-                "";
+            var activeStyle = active ? "transform:scale(1.3) rotate(-45deg);box-shadow:0 0 0 3px rgba(255,255,255,.7);" : "";
             var badge = count > 1 ? '<div class="mi-count">' + count + '</div>' : "";
             return L.divIcon({
                 html: '<div class="mi" style="background:linear-gradient(135deg,' + color + ',#16213E);' +
@@ -1643,15 +1632,12 @@
 
         // ===== DETALLE =====
         function priceLabel(e) { return e.coste === "gratis" ? "🆓 Gratis" : "💶 De pago"; }
-
         function typeTagsHTML(e) {
             return e.tipo.map(function(t) {
                 var c = typeColor(t);
-                return '<span class="badge" style="background:' + c + '22;color:' + c + '">' + typeEmoji(t) + ' ' +
-                    escapeHTML(typeLabel(t)) + '</span>';
+                return '<span class="badge" style="background:' + c + '22;color:' + c + '">' + typeEmoji(t) + ' ' + escapeHTML(typeLabel(t)) + '</span>';
             }).join("");
         }
-
         function dateTimeLabel(e) {
             var lbl = DAY_ABBR[e.dayOfWeek] + " " + fmtDayMonth(e.dateObj);
             var today = new Date();
@@ -1667,21 +1653,17 @@
             activeId = id;
             var isInt = interestSet.has(id);
             var orig = userPos ? userPos.lat + "," + userPos.lng : "";
-            var addrForMaps = e.direccion ? encodeURIComponent(e.direccion + ", " + CITY + ", Alemania") : encodeURIComponent(e
-                .nombre + ", " + CITY);
-            var walkU = "https://www.google.com/maps/dir/?api=1" + (orig ? "&origin=" + orig : "") + "&destination=" +
-                addrForMaps + "&travelmode=walking";
+            var addrForMaps = e.direccion ? encodeURIComponent(e.direccion + ", " + CITY + ", Alemania") : encodeURIComponent(e.nombre + ", " + CITY);
+            var walkU = "https://www.google.com/maps/dir/?api=1" + (orig ? "&origin=" + orig : "") + "&destination=" + addrForMaps + "&travelmode=walking";
             var mapsU = e.ubicacionGoogleMaps || ("https://www.google.com/maps/search/?api=1&query=" + addrForMaps);
 
-            var others = EVENTS.filter(function(x) { return x.nombre === e.nombre; }).sort(function(a, b) { return a
-                    .dateObj - b.dateObj; });
+            var others = EVENTS.filter(function(x) { return x.nombre === e.nombre; }).sort(function(a, b) { return a.dateObj - b.dateObj; });
             var otherHTML = "";
             if (others.length > 1) {
                 otherHTML = '<div class="dblock wide"><div class="dlabel">🔄 Otras fechas de este evento</div>' +
                     '<div class="dother">' + others.map(function(o) {
                         var cur = o.id === e.id;
-                        return '<button class="' + (cur ? "cur" : "") + '" ' + (cur ? "disabled" :
-                            'onclick="selectP(\'' + escapeAttr(o.id) + '\')"') + '>' +
+                        return '<button class="' + (cur ? "cur" : "") + '" ' + (cur ? "disabled" : 'onclick="selectP(\'' + escapeAttr(o.id) + '\')"') + '>' +
                             fmtDayMonth(o.dateObj) + (o.horaInicio ? ", " + o.horaInicio : "") + '</button>';
                     }).join("") + '</div></div>';
             }
@@ -1699,14 +1681,10 @@
             document.getElementById("dname").textContent = e.nombre;
             document.getElementById("dbody").innerHTML =
                 '<div class="dgrid">' +
-                '<div class="dblock"><div class="dlabel">Fecha</div><div class="dval">' + escapeHTML(dateTimeLabel(e)) +
-                '</div></div>' +
-                '<div class="dblock"><div class="dlabel">Precio</div><div class="dval">' + escapeHTML(priceLabel(e)) +
-                '</div></div>' +
-                '<div class="dblock"><div class="dlabel">Entorno</div><div class="dval">' + (e.entorno ? escapeHTML(e
-                    .entorno.charAt(0).toUpperCase() + e.entorno.slice(1)) : "—") + '</div></div>' +
-                '<div class="dblock"><div class="dlabel">📍 Dirección</div><div class="dval">' + (e.direccion ?
-                    escapeHTML(e.direccion) : "No especificada (evento descentralizado)") + '</div></div>' +
+                '<div class="dblock"><div class="dlabel">Fecha</div><div class="dval">' + escapeHTML(dateTimeLabel(e)) + '</div></div>' +
+                '<div class="dblock"><div class="dlabel">Precio</div><div class="dval">' + escapeHTML(priceLabel(e)) + '</div></div>' +
+                '<div class="dblock"><div class="dlabel">Entorno</div><div class="dval">' + (e.entorno ? escapeHTML(e.entorno.charAt(0).toUpperCase() + e.entorno.slice(1)) : "—") + '</div></div>' +
+                '<div class="dblock"><div class="dlabel">📍 Dirección</div><div class="dval">' + (e.direccion ? escapeHTML(e.direccion) : "No especificada (evento descentralizado)") + '</div></div>' +
                 otherHTML +
                 '</div>' +
                 '<div class="dtags">' + typeTagsHTML(e) + '</div>' +
@@ -1722,12 +1700,9 @@
                     'Ver en Maps' +
                     '</a>'
                 ) : "") +
-                (e.urlOficial ? '<a class="dbtn dbtn-official" href="' + e.urlOficial +
-                    '" target="_blank" rel="noopener">🌐 Sitio oficial</a>' : "") +
-                (e.urlTickets ? '<a class="dbtn dbtn-tickets" href="' + e.urlTickets +
-                    '" target="_blank" rel="noopener">🎫 Comprar entradas</a>' : "") +
-                '<button class="dbtn dbtn-int' + (isInt ? " done" : "") + '" onclick="toggleInterest(\'' + escapeAttr(
-                    id) + '\')">' +
+                (safeHref(e.urlOficial) ? '<a class="dbtn dbtn-official" href="' + safeHref(e.urlOficial) + '" target="_blank" rel="noopener noreferrer">🌐 Sitio oficial</a>' : "") +
+                (safeHref(e.urlTickets) ? '<a class="dbtn dbtn-tickets" href="' + safeHref(e.urlTickets) + '" target="_blank" rel="noopener noreferrer">🎫 Comprar entradas</a>' : "") +
+                '<button class="dbtn dbtn-int' + (isInt ? " done" : "") + '" onclick="toggleInterest(\'' + escapeAttr(id) + '\')">' +
                 (isInt ? "★ Te interesa" : "☆ Me interesa") +
                 '</button>' +
                 '</div>' +
@@ -1747,25 +1722,17 @@
             renderList();
             renderMarkers();
         }
-
         function closeDetail() {
             var dp = document.getElementById("dpanel");
             if (!dp.classList.contains("open")) { activeId = null; return; }
-            if (panelHistoryPushed) {
-                history.back();
-            } else {
-                closePanelVisual();
-            }
+            if (panelHistoryPushed) { history.back(); } else { closePanelVisual(); }
         }
         document.getElementById("dclose").addEventListener("click", closeDetail);
 
-        // ===== HISTORIAL =====
         var panelHistoryPushed = false;
-
         function pushPanelHistory() {
             if (panelHistoryPushed) return;
-            try { history.pushState({ dusPanel: true }, "", location.href);
-                panelHistoryPushed = true; } catch (e) {}
+            try { history.pushState({ dusPanel: true }, "", location.href); panelHistoryPushed = true; } catch (e) {}
         }
         window.addEventListener("popstate", function() {
             panelHistoryPushed = false;
@@ -1788,7 +1755,6 @@
             var d = new Date(e.dateObj.getFullYear(), e.dateObj.getMonth(), e.dateObj.getDate());
             return d >= refMonday && d <= end;
         }
-
         function filtered() {
             return EVENTS.filter(function(e) {
                 if (!inActiveWeek(e)) return false;
@@ -1804,7 +1770,7 @@
         function renderList() {
             var events = filtered();
             var fc = document.getElementById("fcount");
-            fc.textContent = events.length + " evento" + (events.length !== 1 ? "s" : "");
+            if (fc) fc.textContent = events.length + " evento" + (events.length !== 1 ? "s" : "");
             var sb = document.getElementById("sidebar");
             if (!events.length) {
                 sb.innerHTML = '<div class="no-res">Sin eventos con estos filtros.' +
@@ -1819,8 +1785,7 @@
                 var icon = mainType ? typeEmoji(mainType) : TYPE_EMOJI_FALLBACK;
                 var tags = e.tipo.slice(0, 3).map(function(t) {
                     var c = typeColor(t);
-                    return '<span class="badge" style="background:' + c + '22;color:' + c + '">' + escapeHTML(typeLabel(t)) +
-                        '</span>';
+                    return '<span class="badge" style="background:' + c + '22;color:' + c + '">' + escapeHTML(typeLabel(t)) + '</span>';
                 }).join("");
                 return '<div class="pcard' + (a ? " active" : "") + (isInt ? " interesa" : "") +
                     '" onclick="selectP(\'' + escapeAttr(e.id) + '\')">' +
@@ -1830,16 +1795,13 @@
                     '<div class="pname">' + escapeHTML(e.nombre) + '</div>' +
                     '</div>' +
                     '<div class="pbadges">' +
-                    '<span class="badge ' + (e.coste === "gratis" ? "b-free" : "b-paid") + '">' + (e.coste ===
-                        "gratis" ? "Gratis" : "De pago") + '</span>' +
+                    '<span class="badge ' + (e.coste === "gratis" ? "b-free" : "b-paid") + '">' + (e.coste === "gratis" ? "Gratis" : "De pago") + '</span>' +
                     tags +
                     '</div>' +
                     '<div class="pdesc">' + escapeHTML(e.descripcion.substring(0, 90)) + '…</div>' +
                     '<div class="pfoot">' +
-                    '<div class="paddr">' + (e.direccion ? escapeHTML(e.direccion) : "Ubicación descentralizada") +
-                    '</div>' +
-                    '<button class="pvbtn" onclick="event.stopPropagation();toggleInterest(\'' + escapeAttr(e.id) +
-                    '\')">' + (isInt ? "★" : "☆") + ' Me interesa</button>' +
+                    '<div class="paddr">' + (e.direccion ? escapeHTML(e.direccion) : "Ubicación descentralizada") + '</div>' +
+                    '<button class="pvbtn" onclick="event.stopPropagation();toggleInterest(\'' + escapeAttr(e.id) + '\')">' + (isInt ? "★" : "☆") + ' Me interesa</button>' +
                     '</div>' +
                     '</div>';
             }).join("");
@@ -1847,8 +1809,7 @@
 
         // ===== RENDER MAPA =====
         function renderMarkers() {
-            Object.keys(markers).forEach(function(k) { markers[k].remove();
-                delete markers[k]; });
+            Object.keys(markers).forEach(function(k) { markers[k].remove(); delete markers[k]; });
             var events = filtered().filter(function(e) { return e.direccion && geocache[e.direccion]; });
             var byVenue = {};
             events.forEach(function(e) {
@@ -1865,8 +1826,7 @@
                 var color = mainType ? typeColor(mainType) : "#5DADE2";
                 var emoji = mainType ? typeEmoji(mainType) : TYPE_EMOJI_FALLBACK;
                 var active = group.some(function(e) { return e.id === activeId; });
-                var m = L.marker([pos.lat, pos.lng], { icon: makeIcon(color, emoji, group.length, active) }).addTo(
-                map);
+                var m = L.marker([pos.lat, pos.lng], { icon: makeIcon(color, emoji, group.length, active) }).addTo(map);
                 m.on("click", function(ev) {
                     L.DomEvent.stopPropagation(ev);
                     if (group.length === 1) {
@@ -1876,9 +1836,7 @@
                     } else {
                         var html = '<div class="venue-pop"><b>' + group.length + ' eventos aquí</b>' +
                             group.map(function(e) {
-                                return '<div class="vp-item" onclick="selectP(\'' + escapeAttr(e.id) +
-                                    '\')">' + escapeHTML(dateTimeLabel(e)) + ' — ' + escapeHTML(e
-                                    .nombre) + '</div>';
+                                return '<div class="vp-item" onclick="selectP(\'' + escapeAttr(e.id) + '\')">' + escapeHTML(dateTimeLabel(e)) + ' — ' + escapeHTML(e.nombre) + '</div>';
                             }).join("") + '</div>';
                         m.bindPopup(html).openPopup();
                     }
@@ -1894,14 +1852,12 @@
                 map.setView([geocache[e.direccion].lat, geocache[e.direccion].lng], 16, { animate: true });
             } else if (e.direccion) {
                 geocodeAddress(e.direccion).then(function(pos) {
-                    if (pos) { map.setView([pos.lat, pos.lng], 16, { animate: true });
-                        renderMarkers(); }
+                    if (pos) { map.setView([pos.lat, pos.lng], 16, { animate: true }); renderMarkers(); }
                 });
             }
             openDetail(id);
             scrollToCard(id);
         };
-
         function scrollToCard(id) {
             var el = document.querySelector('.pcard[onclick*="' + id + '"]');
             if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -1909,8 +1865,8 @@
 
         // ===== FILTROS: SEMANA =====
         function renderWeekLabel() {
-            var lbl = document.getElementById("wk-label");
-            var allBtn = document.getElementById("wk-all");
+            var lbl = document.getElementById("wk-label-menu");
+            var allBtn = document.getElementById("wk-all-menu");
             if (weekMode === "all") {
                 lbl.textContent = "Todos los eventos";
                 lbl.classList.add("dim");
@@ -1924,62 +1880,36 @@
                 allBtn.classList.remove("active");
             }
         }
-        window.setWeekAll = function() { weekMode = "all";
+
+        window.setWeekAll = function() {
+            weekMode = "all";
             renderWeekLabel();
-            resetTypeToAll();
-            closeDetail();
-            renderList();
-            renderMarkers(); };
-        document.getElementById("wk-all").addEventListener("click", function() { setWeekAll(); });
-        document.getElementById("wk-prev").addEventListener("click", function() {
-            refMonday = addDays(refMonday, -7);
-            weekMode = "week";
-            renderWeekLabel();
-            resetTypeToAll();
             closeDetail();
             renderList();
             renderMarkers();
-        });
-        document.getElementById("wk-next").addEventListener("click", function() {
-            refMonday = addDays(refMonday, 7);
+            syncMenuState();
+        };
+
+        function changeWeek(delta) {
+            refMonday = addDays(refMonday, delta * 7);
             weekMode = "week";
             renderWeekLabel();
-            resetTypeToAll();
             closeDetail();
             renderList();
             renderMarkers();
-        });
-
-        // ===== FILTROS: DÍA / TIPO / PRECIO / INTERÉS =====
-        function syncChipGroup(containerId, dataKey, currentValue) {
-            document.getElementById(containerId).querySelectorAll(".chip").forEach(function(c) {
-                var on = (currentValue === "all") || (c.dataset[dataKey] === currentValue);
-                c.classList.toggle("active", on);
-                if (c.dataset.color) {
-                    if (on) { c.style.color = c.dataset.color;
-                        c.style.borderColor = c.dataset.color;
-                        c.style.background = c.dataset.color + "22"; } else { c.style.color = "";
-                        c.style.borderColor = "";
-                        c.style.background = ""; }
-                }
-            });
+            syncMenuState();
         }
 
-        function selectAllInGroup(containerId, dataKey) {
-            var s = new Set();
-            document.getElementById(containerId).querySelectorAll(".chip").forEach(function(c) {
-                if (c.dataset[dataKey] !== "all") s.add(c.dataset[dataKey]);
-            });
-            return s;
-        }
+        document.getElementById("wk-prev-menu").addEventListener("click", function() { changeWeek(-1); });
+        document.getElementById("wk-next-menu").addEventListener("click", function() { changeWeek(1); });
+        document.getElementById("wk-all-menu").addEventListener("click", setWeekAll);
 
-        function toggleAllInGroup(containerId, dataKey, currentSelected) {
-            var full = selectAllInGroup(containerId, dataKey);
-            return (currentSelected.size === full.size) ? new Set() : full;
-        }
+        // ===== FILTROS: DÍA, TIPO, PRECIO, INTERÉS (desde el menú) =====
 
         function syncMultiChipGroup(containerId, dataKey, selectedSet) {
-            var chips = document.getElementById(containerId).querySelectorAll(".chip");
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            var chips = container.querySelectorAll(".chip");
             var total = 0;
             chips.forEach(function(c) { if (c.dataset[dataKey] !== "all") total++; });
             chips.forEach(function(c) {
@@ -1987,84 +1917,149 @@
                 var on = (val === "all") ? (selectedSet.size === total) : selectedSet.has(val);
                 c.classList.toggle("active", on);
                 if (c.dataset.color) {
-                    if (on) { c.style.color = c.dataset.color;
-                        c.style.borderColor = c.dataset.color;
-                        c.style.background = c.dataset.color + "22"; } else { c.style.color = "";
-                        c.style.borderColor = "";
-                        c.style.background = ""; }
+                    if (on) { c.style.color = c.dataset.color; c.style.borderColor = c.dataset.color; c.style.background = c.dataset.color + "22"; }
+                    else { c.style.color = ""; c.style.borderColor = ""; c.style.background = ""; }
                 }
             });
         }
 
-        // Cambiar el D\u00cdA o la SEMANA reactiva todos los TIPOS: as\u00ed se ve de entrada
-        // todo lo que hay para ese periodo, y luego el usuario filtra por tipo si quiere.
-        function resetTypeToAll() {
-            typeSelected = selectAllInGroup("type-chips", "type");
-            syncMultiChipGroup("type-chips", "type", typeSelected);
+        function syncChipGroup(containerId, dataKey, currentValue) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            var chips = container.querySelectorAll(".chip");
+            chips.forEach(function(c) {
+                var val = c.dataset[dataKey];
+                var on = (currentValue === "all") ? true : (val === currentValue);
+                c.classList.toggle("active", on);
+                if (c.dataset.color) {
+                    if (on) { c.style.color = c.dataset.color; c.style.borderColor = c.dataset.color; c.style.background = c.dataset.color + "22"; }
+                    else { c.style.color = ""; c.style.borderColor = ""; c.style.background = ""; }
+                }
+            });
+            container.classList.toggle("all-active", currentValue === "all");
         }
 
-        daySelected = selectAllInGroup("day-chips", "day");
-        syncMultiChipGroup("day-chips", "day", daySelected);
+        function toggleAllInGroup(containerId, dataKey, currentSelected) {
+            var container = document.getElementById(containerId);
+            if (!container) return currentSelected;
+            var chips = container.querySelectorAll(".chip");
+            var total = 0;
+            chips.forEach(function(c) { if (c.dataset[dataKey] !== "all") total++; });
+            return (currentSelected.size === total) ? new Set() : new Set(Array.from(chips).filter(function(c) { return c.dataset[dataKey] !== "all"; }).map(function(c) { return c.dataset[dataKey]; }));
+        }
 
-        document.getElementById("day-chips").addEventListener("click", function(e) {
+        // Día
+        document.getElementById("day-chips-menu").addEventListener("click", function(e) {
             var btn = e.target.closest(".chip");
             if (!btn) return;
             if (btn.dataset.day === "all") {
-                daySelected = toggleAllInGroup("day-chips", "day", daySelected);
+                daySelected = toggleAllInGroup("day-chips-menu", "day", daySelected);
             } else {
                 var v = btn.dataset.day;
                 if (daySelected.has(v)) daySelected.delete(v);
                 else daySelected.add(v);
             }
-            syncMultiChipGroup("day-chips", "day", daySelected);
-            resetTypeToAll();
+            syncMultiChipGroup("day-chips-menu", "day", daySelected);
+            // Resetear tipos a "todos" para que se vea todo el contenido de la semana/día
+            var allTypeChips = document.querySelectorAll("#type-chips-menu .chip:not(.type-all)");
+            typeSelected = new Set(Array.from(allTypeChips).filter(function(c) { return c.dataset.type !== "all"; }).map(function(c) { return c.dataset.type; }));
+            syncMultiChipGroup("type-chips-menu", "type", typeSelected);
             closeDetail();
             renderList();
             renderMarkers();
+            syncMenuState();
         });
 
-        document.getElementById("type-chips").addEventListener("click", function(e) {
+        // Tipo (Categoría)
+        document.getElementById("type-chips-menu").addEventListener("click", function(e) {
             var btn = e.target.closest(".chip");
             if (!btn) return;
             if (btn.dataset.type === "all") {
-                typeSelected = toggleAllInGroup("type-chips", "type", typeSelected);
+                var allTypes = new Set(Array.from(document.querySelectorAll("#type-chips-menu .chip:not(.type-all)")).filter(function(c) { return c.dataset.type !== "all"; }).map(function(c) { return c.dataset.type; }));
+                if (typeSelected.size === allTypes.size) {
+                    typeSelected = new Set();
+                } else {
+                    typeSelected = allTypes;
+                }
             } else {
                 var v = btn.dataset.type;
                 if (typeSelected.has(v)) typeSelected.delete(v);
                 else typeSelected.add(v);
             }
-            syncMultiChipGroup("type-chips", "type", typeSelected);
+            syncMultiChipGroup("type-chips-menu", "type", typeSelected);
             closeDetail();
             renderList();
             renderMarkers();
+            syncMenuState();
         });
 
-        document.getElementById("price-chips").addEventListener("click", function(e) {
+        // Precio
+        document.getElementById("price-chips-menu").addEventListener("click", function(e) {
             var btn = e.target.closest(".chip");
             if (!btn) return;
             priceFilter = btn.dataset.price;
-            syncChipGroup("price-chips", "price", priceFilter);
+            syncChipGroup("price-chips-menu", "price", priceFilter);
             closeDetail();
             renderList();
             renderMarkers();
+            syncMenuState();
         });
 
-        document.getElementById("f-interest").addEventListener("click", function() {
+        // Intereses
+        document.getElementById("f-interest-menu").addEventListener("click", function() {
             interestOnly = !interestOnly;
             this.classList.toggle("active", interestOnly);
             closeDetail();
             renderList();
             renderMarkers();
+            syncMenuState();
         });
 
-        // ===== GEOLOCALIZACIÓN CON CONSENTIMIENTO =====
+        // ===== SINCRONIZAR ESTADO DEL MENÚ =====
+        function syncMenuState() {
+            renderWeekLabel();
+            syncMultiChipGroup("day-chips-menu", "day", daySelected);
+            syncMultiChipGroup("type-chips-menu", "type", typeSelected);
+            syncChipGroup("price-chips-menu", "price", priceFilter);
+            var intBtn = document.getElementById("f-interest-menu");
+            if (intBtn) intBtn.classList.toggle("active", interestOnly);
+        }
+
+        // ===== MENÚ HAMBURGUESA: ABRIR/CERRAR =====
+        var menuOverlay = document.getElementById("menu-overlay");
+        var menuToggle = document.getElementById("menu-toggle");
+        var menuClose = document.getElementById("menu-close");
+
+        function openMenu() {
+            menuOverlay.classList.add("open");
+            syncMenuState();
+            document.body.style.overflow = "hidden";
+        }
+        function closeMenu() {
+            menuOverlay.classList.remove("open");
+            document.body.style.overflow = "";
+        }
+        function toggleMenu() {
+            if (menuOverlay.classList.contains("open")) closeMenu();
+            else openMenu();
+        }
+
+        menuToggle.addEventListener("click", toggleMenu);
+        menuClose.addEventListener("click", closeMenu);
+        menuOverlay.addEventListener("click", function(e) {
+            if (e.target === menuOverlay) closeMenu();
+        });
+
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape" && menuOverlay.classList.contains("open")) closeMenu();
+        });
+
+        // ===== GEOLOCALIZACIÓN =====
         var SVG_LOC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h2M20 12h2"/><circle cx="12" cy="12" r="9" stroke-opacity=".3"/></svg>';
 
-        // "Cómo llegar" calcula la ruta desde TU posición: sin consentimiento
-        // explícito y ubicación en tiempo real activa, no hay origen que usar.
         window.requireLocationForRoute = function() {
             if (!userPos) {
-                notify('No se puede calcular la ruta sin tu consentimiento explícito. Debes activar la ubicación en tiempo real con el botón "Mi Ubicación".', 'error');
+                notify('No se puede calcular la ruta sin consentimiento explícito. Activa "Mi Ubicación".', 'error');
                 return false;
             }
             return true;
@@ -2075,19 +2070,22 @@
             var latlng = L.latLng(lat, lng);
             var radius = (acc && acc > 0) ? acc : 20;
             if (userCircle) { userCircle.setLatLng(latlng).setRadius(radius); } else {
-                userCircle = L.circle(latlng, { radius: radius, color: "#3b82f6", fillColor: "#3b82f6",
-                        fillOpacity: .10, weight: 1.5, interactive: false }).addTo(map);
+                userCircle = L.circle(latlng, { radius: radius, color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: .10, weight: 1.5, interactive: false }).addTo(map);
             }
             if (userMarker) {
                 userMarker.setLatLng(latlng);
-                userMarker.setPopupContent("<b style='color:#3b82f6'>📍 Tu posición actual</b><br><small style='color:#888'>Precisión: ±" +
-                    (Math.round(radius)) + "m</small>");
+                userMarker.setPopupContent("<b style='color:#3b82f6'>📍 Tu posición actual</b><br><small style='color:#888'>Precisión: ±" + (Math.round(radius)) + "m</small>");
             } else {
-                userMarker = L.circleMarker(latlng, { radius: 8, color: "#fff", weight: 2, fillColor: "#3b82f6",
-                        fillOpacity: 1, zIndexOffset: 1000, interactive: true }).addTo(map);
-                userMarker.bindPopup("<b style='color:#3b82f6'>📍 Tu posición actual</b><br><small style='color:#888'>Precisión: ±" +
-                    (Math.round(radius)) + "m</small>");
+                userMarker = L.circleMarker(latlng, { radius: 8, color: "#fff", weight: 2, fillColor: "#3b82f6", fillOpacity: 1, zIndexOffset: 1000, interactive: true }).addTo(map);
+                userMarker.bindPopup("<b style='color:#3b82f6'>📍 Tu posición actual</b><br><small style='color:#888'>Precisión: ±" + (Math.round(radius)) + "m</small>");
             }
+        }
+
+        function stopLiveLocation() {
+            if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+            if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+            if (userCircle) { map.removeLayer(userCircle); userCircle = null; }
+            userPos = null;
         }
 
         function startLocation(highAccuracy) {
@@ -2100,17 +2098,14 @@
             btn.disabled = true;
             navigator.geolocation.getCurrentPosition(
                 function(pos) {
-                    var lat = pos.coords.latitude,
-                        lng = pos.coords.longitude,
-                        acc = pos.coords.accuracy;
+                    var lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy;
                     updateUserMarker(lat, lng, acc);
                     map.setView([lat, lng], 16, { animate: true });
                     btn.innerHTML = SVG_LOC + " Mi Ubicación";
                     btn.disabled = false;
                     if (watchId !== null) navigator.geolocation.clearWatch(watchId);
                     watchId = navigator.geolocation.watchPosition(
-                        function(p) { updateUserMarker(p.coords.latitude, p.coords.longitude, p.coords
-                            .accuracy); },
+                        function(p) { updateUserMarker(p.coords.latitude, p.coords.longitude, p.coords.accuracy); },
                         function() {},
                         { enableHighAccuracy: highAccuracy, maximumAge: 5000, timeout: 15000 }
                     );
@@ -2120,19 +2115,16 @@
                     btn.innerHTML = SVG_LOC + " Mi Ubicación";
                     btn.disabled = false;
                     var msg = "No se pudo obtener la ubicación.";
-                    if (err.code === 1) {
-                        msg = "Permiso de ubicación denegado. Activa la ubicación para este sitio en tu navegador.";
-                    } else if (err.code === 2) {
-                        msg = "Señal de ubicación no disponible. Inténtalo de nuevo más tarde.";
-                    } else if (err.code === 3) {
-                        msg = "Tiempo de espera agotado. Inténtalo de nuevo.";
-                    }
+                    if (err.code === 1) msg = "Permiso de ubicación denegado. Activa la ubicación para este sitio en tu navegador.";
+                    else if (err.code === 2) msg = "Señal de ubicación no disponible. Inténtalo de nuevo.";
+                    else if (err.code === 3) msg = "Tiempo de espera agotado. Inténtalo de nuevo.";
                     notify(msg, "error");
-                }, { enableHighAccuracy: highAccuracy, timeout: 15000, maximumAge: 0 }
+                },
+                { enableHighAccuracy: highAccuracy, timeout: 15000, maximumAge: 0 }
             );
         }
 
-        document.getElementById("btn-locate").addEventListener("click", function() {
+        function handleLocate() {
             if (!isPoliticaAceptada()) {
                 notify("Debes aceptar la política de privacidad primero.", "error");
                 openModal('modal-aceptar-politica');
@@ -2144,6 +2136,12 @@
                 return;
             }
             openModal('modal-consentimiento');
+        }
+
+        document.getElementById("btn-locate").addEventListener("click", handleLocate);
+        document.getElementById("btn-locate-menu").addEventListener("click", function() {
+            closeMenu();
+            handleLocate();
         });
 
         document.getElementById("btn-consent-accept").addEventListener("click", function() {
@@ -2151,6 +2149,17 @@
             var highAcc = document.getElementById('chk-high-accuracy').checked;
             consentGiven = true;
             startLocation(highAcc);
+        });
+
+        // ===== BOTONES DE PRIVACIDAD Y GESTIÓN DENTRO DEL MENÚ =====
+        document.getElementById("btn-privacidad-menu").addEventListener("click", function() {
+            closeMenu();
+            openModal('modal-privacidad');
+        });
+        document.getElementById("btn-gestion-menu").addEventListener("click", function() {
+            closeMenu();
+            openModal('modal-gestion');
+            refreshGestionModal();
         });
 
         // ===== VALIDACIÓN DEL JSON =====
@@ -2164,12 +2173,21 @@
             return true;
         }
 
-        // ===== BUILD TYPE FILTERS =====
+        // ===== CONSTRUIR FILTROS DE TIPO (Categoría) =====
         function buildTypeFilters() {
-            var types = new Set();
-            EVENTS.forEach(function(e) { e.tipo.forEach(function(t) { types.add(t); }); });
-            var box = document.getElementById("type-chips");
-            Array.from(types).sort().forEach(function(t) {
+            // Definir los tipos base que siempre estarán disponibles (incluyendo los nuevos)
+            var baseTypes = ["música", "comida", "arte", "baile", "cine", "teatro", "deporte", "mercado", "familia", "fiesta", "picnic", "grill", "encuentro"];
+            // Recoger tipos de los eventos
+            var eventTypes = new Set();
+            EVENTS.forEach(function(e) { e.tipo.forEach(function(t) { eventTypes.add(t); }); });
+            // Unir con los baseTypes (para que siempre aparezcan aunque no haya eventos)
+            var allTypes = new Set(baseTypes);
+            eventTypes.forEach(function(t) { allTypes.add(t); });
+
+            var box = document.getElementById("type-chips-menu");
+            box.innerHTML = '';
+            // Primero los tipos específicos (ordenados)
+            Array.from(allTypes).sort().forEach(function(t) {
                 var c = typeColor(t);
                 var b = document.createElement("button");
                 b.className = "chip type-chip";
@@ -2178,40 +2196,61 @@
                 b.dataset.color = c;
                 box.appendChild(b);
             });
+            // Luego el botón "Todos" con clase especial
+            var allBtn = document.createElement("button");
+            allBtn.className = "chip type-chip type-all active";
+            allBtn.dataset.type = "all";
+            allBtn.textContent = "✓ Todos";
+            box.appendChild(allBtn);
+
+            // Inicializar typeSelected con todos los tipos
+            typeSelected = new Set(Array.from(allTypes));
+            syncMultiChipGroup("type-chips-menu", "type", typeSelected);
         }
 
-        // ===== INIT =====
-        function showLoadError(err) {
-            document.getElementById("sidebar").innerHTML =
-                '<div class="no-res">No se pudo cargar <code>datos_eventos.json</code>.<br><br>' +
-                'Si has abierto este archivo directamente con doble clic (file://), el navegador bloquea la carga del JSON por seguridad.<br><br>' +
-                'Sirve la carpeta con un servidor local, por ejemplo:<br><code>python3 -m http.server</code><br>y abre <code>http://localhost:8000</code>.</div>';
-            console.error(err);
-            notify("Error al cargar los datos. Revisa la consola.", "error");
+        // ===== INICIALIZACIÓN CON DETECCIÓN DE PROTOCOLO FILE =====
+        function initApp() {
+            if (location.protocol === 'file:') {
+                document.getElementById("sidebar").innerHTML =
+                    '<div class="no-res">⚠️ No se puede cargar datos desde <code>file://</code>.<br><br>' +
+                    'Por favor, sirve esta carpeta con un servidor local:<br>' +
+                    '<code>python3 -m http.server</code><br>' +
+                    'y abre <code>http://localhost:8000</code>.</div>';
+                notify("Carga fallida: usa un servidor local.", "error");
+                return;
+            }
+
+            fetch("datos_eventos.json")
+                .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+                .then(function(data) {
+                    if (!validateEventData(data)) throw new Error("El formato del JSON no es válido.");
+                    EVENTS = (data.eventos || []).map(buildEvent);
+                    restoreInterestState();
+                    loadGeocache();
+                    buildTypeFilters();
+                    daySelected = new Set(Array.from(document.getElementById("day-chips-menu").querySelectorAll(".chip")).filter(function(c) { return c.dataset.day !== "all"; }).map(function(c) { return c.dataset.day; }));
+                    syncMultiChipGroup("day-chips-menu", "day", daySelected);
+                    syncChipGroup("price-chips-menu", "price", "all");
+                    document.getElementById("f-interest-menu").classList.remove("active");
+                    renderWeekLabel();
+                    syncMenuState();
+                    renderList();
+                    renderMarkers();
+                    startGeocodeQueue();
+                    var fc = document.getElementById("fcount");
+                    if (fc) fc.textContent = EVENTS.length + " evento" + (EVENTS.length !== 1 ? "s" : "");
+                })
+                .catch(function(err) {
+                    document.getElementById("sidebar").innerHTML =
+                        '<div class="no-res">Error al cargar <code>datos_eventos.json</code>.<br><br>' +
+                        'Verifica que el archivo existe y tiene el formato correcto.</div>';
+                    console.error(err);
+                    notify("Error al cargar los datos. Revisa la consola.", "error");
+                });
         }
 
-        fetch("datos_eventos.json")
-            .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-            .then(function(data) {
-                if (!validateEventData(data)) {
-                    throw new Error("El formato del JSON no es válido.");
-                }
-                EVENTS = (data.eventos || []).map(buildEvent);
-                restoreInterestState();
-                loadGeocache();
-                buildTypeFilters();
-                typeSelected = selectAllInGroup("type-chips", "type");
-                syncMultiChipGroup("day-chips", "day", daySelected);
-                syncMultiChipGroup("type-chips", "type", typeSelected);
-                syncChipGroup("price-chips", "price", priceFilter);
-                renderWeekLabel();
-                renderList();
-                renderMarkers();
-                startGeocodeQueue();
-            })
-            .catch(showLoadError);
-
-        console.log("✅ Aplicación actualizada con medidas de seguridad y GDPR.");
+        initApp();
+        console.log("✅ Ajustes finales: hamburguesa a la derecha, título 'Eventos', categorías con nuevos tipos, política y gestión solo en menú.");
     </script>
 </body>
 </html>
