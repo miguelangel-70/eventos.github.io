@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Düsseldorf — Agenda de Eventos</title>
+
+    <!-- ===== SECURITY HEADERS (meta) ===== -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://unpkg.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' data: https://*.basemaps.cartocdn.com;
+        connect-src 'self' https://photon.komoot.io;
+        frame-src 'none';
+        frame-ancestors 'none';
+        base-uri 'self';
+        form-action 'none';
+    ">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+
+    <!-- ===== EXTERNAL RESOURCES with SRI ===== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="anonymous">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin="anonymous">
+    </script>
+
+    <style>
+        /* ===== ORIGINAL STYLES (preserved) ===== */
+        :root {
+            --blue: #1a6aa8;
+            --gold: #D4A843;
+            --dark: #1A1A2E;
+            --panel: #16213E;
+            --card: #0F3460;
+            --text: #EAE6D9;
+            --muted: #8A8A9A;
+            --border: rgba(255, 255, 255, 0.08);
+            --free: #2ecc71;
+            --paid: #e6813a;
+        }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== NOTIFICATIONS ===== */
+        #notif-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 360px;
+            width: 100%;
+            pointer-events: none;
+        }
+        .notif {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            color: var(--text);
+            font-size: 0.82rem;
+            line-height: 1.4;
+            pointer-events: auto;
+            opacity: 0;
+            transform: translateX(20px);
+            animation: notifIn 0.35s ease forwards;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid var(--gold);
+        }
+        .notif.error {
+            border-left-color: #e74c3c;
+        }
+        .notif.success {
+            border-left-color: var(--free);
+        }
+        .notif.info {
+            border-left-color: var(--blue);
+        }
+        .notif-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            cursor: default;
+            user-select: none;
+        }
+        .notif-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 1.6rem;
+            line-height: 1;
+            font-weight: 600;
+            padding: 2px 7px;
+            margin: -4px -6px -4px 6px;
+            flex-shrink: 0;
+            border-radius: 7px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .notif-close:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.14);
+        }
+        @keyframes notifIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        @keyframes notifOut {
+            to {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+        }
+
+        /* ===== MODAL OVERLAY ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 8000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal-box {
+            background: var(--panel);
+            border-radius: 16px;
+            max-width: 640px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 28px 30px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            position: relative;
+        }
+        .modal-box h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: var(--gold);
+        }
+        .modal-box p,
+        .modal-box li {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #ccc;
+        }
+        .modal-box ul {
+            padding-left: 20px;
+            margin: 8px 0 12px;
+        }
+        .modal-box a {
+            color: var(--gold);
+            text-decoration: underline;
+        }
+        .modal-box .btn-close-modal {
+            margin-top: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+        .modal-box .btn-close-modal:hover {
+            background: rgba(255, 255, 255, 0.16);
+        }
+        .modal-box .btn-primary {
+            background: var(--gold);
+            color: var(--dark);
+            border: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: filter 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .modal-box .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+        .modal-box .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .modal-box .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        .modal-box .btn-danger {
+            background: #c0392b;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: filter 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .modal-box .btn-danger:hover {
+            filter: brightness(1.15);
+        }
+        .modal-box .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0 16px;
+        }
+        .modal-box .checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--gold);
+            cursor: pointer;
+        }
+        .modal-box .checkbox-row label {
+            font-size: 0.85rem;
+            color: #ccc;
+            cursor: pointer;
+        }
+        .modal-box .data-list {
+            background: var(--card);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 10px 0 16px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            color: #ddd;
+            list-style: none;
+        }
+        .modal-box .data-list li {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-box .data-list li:last-child {
+            border-bottom: none;
+        }
+        .modal-box .actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        /* ===== ORIGINAL LAYOUT ===== */
+        header {
+            background: linear-gradient(135deg, #1a6aa8 0%, #123a63 60%, #1A1A2E 100%);
+            padding: 11px 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            flex-shrink: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, .1);
+            overflow: hidden;
+            position: relative;
+        }
+        header::after {
+            content: 'DUS';
+            position: absolute;
+            right: 110px;
+            top: -6px;
+            font-size: 70px;
+            opacity: .06;
+            pointer-events: none;
+            font-family: 'Playfair Display', serif;
+            font-weight: 900;
+        }
+        .hdr-left h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 900;
+            letter-spacing: -.02em;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .hdr-left h1 span {
+            color: var(--gold);
+        }
+        .hdr-left p {
+            font-size: .68rem;
+            color: rgba(255, 255, 255, .55);
+            margin-top: 2px;
+            font-weight: 300;
+        }
+        .hdr-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-self: flex-start;
+        }
+        #btn-locate {
+            background: rgba(255, 255, 255, .12);
+            border: 1px solid rgba(255, 255, 255, .25);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .74rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background .2s;
+            white-space: nowrap;
+        }
+        #btn-locate:hover {
+            background: rgba(255, 255, 255, .22);
+        }
+        #btn-locate svg {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+        }
+        .hdr-btn {
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid rgba(255, 255, 255, .15);
+            color: #ddd;
+            padding: 6px 12px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .7rem;
+            font-weight: 500;
+            transition: background .2s;
+            white-space: nowrap;
+        }
+        .hdr-btn:hover {
+            background: rgba(255, 255, 255, .18);
+        }
+
+        .filters {
+            background: var(--panel);
+            padding: 7px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .frow {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .frow::-webkit-scrollbar {
+            display: none;
+        }
+        .frow-status {
+            justify-content: space-between;
+            overflow-x: visible;
+        }
+        .frow-status-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .flabel {
+            font-size: .66rem;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            flex: 0 0 auto;
+        }
+        .chip {
+            padding: 4px 11px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: .72rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .18s;
+            background: transparent;
+            color: var(--muted);
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+        .chip:hover {
+            color: var(--text);
+            border-color: rgba(255, 255, 255, .3);
+        }
+        .chip.active {
+            border-color: currentColor;
+        }
+        .chip.wk-nav {
+            font-weight: 700;
+            padding: 4px 9px;
+        }
+        .chip.wk-label {
+            cursor: default;
+            color: var(--text);
+            border-color: rgba(255, 255, 255, .18);
+            min-width: 118px;
+            text-align: center;
+        }
+        .chip.wk-label.dim {
+            color: var(--muted);
+            font-style: italic;
+        }
+        .chip.wk-all.active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212, 168, 67, .12);
+        }
+        .chip.day-chip.active {
+            color: #5DADE2;
+            border-color: #5DADE2;
+            background: rgba(93, 173, 226, .15);
+        }
+        .chip.price-chip.active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212, 168, 67, .12);
+        }
+        .chip.price-chip[data-price="gratis"].active {
+            color: var(--free);
+            border-color: var(--free);
+            background: rgba(46, 204, 113, .12);
+        }
+        .chip.price-chip[data-price="pago"].active {
+            color: var(--paid);
+            border-color: var(--paid);
+            background: rgba(230, 126, 34, .12);
+        }
+        .chip.interest-chip.active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212, 168, 67, .15);
+        }
+        .chip.type-chip[data-type="all"].active {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212, 168, 67, .12);
+        }
+        .fdiv {
+            width: 1px;
+            height: 18px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+        #fcount {
+            font-size: .68rem;
+            color: var(--muted);
+            background: var(--border);
+            padding: 3px 9px;
+            border-radius: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        #geo-status {
+            font-size: .64rem;
+            color: var(--muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 7px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--card) transparent;
+        }
+        .pcard {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 11px 13px;
+            margin-bottom: 7px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all .18s;
+            position: relative;
+        }
+        .pcard:hover {
+            border-color: rgba(255, 255, 255, .15);
+            transform: translateX(2px);
+        }
+        .pcard.active {
+            border-color: var(--gold);
+            box-shadow: inset 0 0 0 1px var(--gold);
+        }
+        .pcard.interesa {
+            box-shadow: inset 0 0 0 1px rgba(212, 168, 67, .55);
+        }
+        .pcard.interesa::after {
+            content: '★ Me interesa';
+            position: absolute;
+            top: 9px;
+            right: 9px;
+            font-size: .6rem;
+            color: var(--gold);
+            background: rgba(212, 168, 67, .18);
+            padding: 2px 7px;
+            border-radius: 9px;
+        }
+        .pdate {
+            font-size: .66rem;
+            color: var(--gold);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 5px;
+        }
+        .ph {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin-bottom: 5px;
+        }
+        .picon {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .9rem;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, .06);
+        }
+        .pname {
+            font-size: .82rem;
+            font-weight: 600;
+            line-height: 1.3;
+            flex: 1;
+        }
+        .pbadges {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
+        .badge {
+            font-size: .58rem;
+            padding: 2px 6px;
+            border-radius: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .b-free {
+            background: rgba(46, 204, 113, .18);
+            color: var(--free);
+        }
+        .b-paid {
+            background: rgba(230, 126, 34, .18);
+            color: var(--paid);
+        }
+        .pdesc {
+            font-size: .71rem;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 6px;
+        }
+        .pfoot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .paddr {
+            font-size: .66rem;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .pvbtn {
+            font-size: .62rem;
+            padding: 3px 8px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: all .18s;
+            flex-shrink: 0;
+        }
+        .pvbtn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        .pcard.interesa .pvbtn {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(212, 168, 67, .12);
+        }
+        .no-res {
+            padding: 40px 16px;
+            text-align: center;
+            color: var(--muted);
+            font-size: .82rem;
+        }
+        .no-res button {
+            margin-top: 10px;
+            background: rgba(212, 168, 67, .12);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: .72rem;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        #map {
+            flex: 1;
+            z-index: 1;
+        }
+
+        .mi {
+            width: 36px;
+            height: 36px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, .3);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, .4);
+        }
+        .mi .inn {
+            transform: rotate(45deg);
+            font-size: 14px;
+            line-height: 1;
+        }
+        .mi-user {
+            background: linear-gradient(135deg, #3498db, #1a6aa8);
+        }
+        .mi-count {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--gold);
+            color: #1A1A2E;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: .55rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotate(45deg);
+            border: 1px solid rgba(0, 0, 0, .3);
+        }
+        .leaflet-popup-content-wrapper {
+            background: var(--panel);
+            color: var(--text);
+            border-radius: 9px;
+        }
+        .leaflet-popup-tip {
+            background: var(--panel);
+        }
+        .leaflet-control-attribution {
+            display: none;
+        }
+        .venue-pop {
+            min-width: 180px;
+        }
+        .venue-pop b {
+            font-size: .76rem;
+            display: block;
+            margin-bottom: 5px;
+            color: var(--gold);
+        }
+        .venue-pop .vp-item {
+            font-size: .72rem;
+            padding: 4px 0;
+            border-top: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .venue-pop .vp-item:hover {
+            color: var(--gold);
+        }
+        .venue-pop .vp-item:first-of-type {
+            border-top: none;
+        }
+
+        .dpanel {
+            position: absolute;
+            bottom: 0;
+            left: 320px;
+            right: 0;
+            z-index: 1000;
+            background: var(--panel);
+            border-top: 2px solid rgba(26, 106, 168, .55);
+            transform: translateY(105%);
+            transition: transform .3s cubic-bezier(.22, 1, .36, 1);
+            max-height: 75%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--card) transparent;
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, .45);
+        }
+        .dpanel.open {
+            transform: translateY(0);
+        }
+        .dhead {
+            position: sticky;
+            top: 0;
+            background: var(--panel);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px 10px;
+            border-bottom: 1px solid var(--border);
+            z-index: 2;
+        }
+        .dname {
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 72%;
+        }
+        .dclosebtn {
+            background: rgba(255, 255, 255, .08);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 4px 11px;
+            font-size: .74rem;
+            font-family: 'DM Sans', sans-serif;
+            transition: background .15s;
+            flex-shrink: 0;
+        }
+        .dclosebtn:hover {
+            background: rgba(255, 255, 255, .16);
+            color: var(--text);
+        }
+        .dbody {
+            padding: 15px 20px 20px;
+        }
+        .dgrid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 13px;
+        }
+        .dblock {
+            background: var(--card);
+            border-radius: 9px;
+            padding: 9px 12px;
+        }
+        .dblock.wide {
+            grid-column: 1 / -1;
+        }
+        .dlabel {
+            font-size: .58rem;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--muted);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .dval {
+            font-size: .78rem;
+            color: var(--text);
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .dtags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-bottom: 11px;
+        }
+        .ddesc {
+            font-size: .8rem;
+            color: #ccc;
+            line-height: 1.65;
+            margin-bottom: 11px;
+        }
+        .dother {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .dother button {
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: .68rem;
+            padding: 4px 9px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .dother button:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        .dother button.cur {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(212, 168, 67, .12);
+            cursor: default;
+        }
+        .dactions {
+            display: flex;
+            gap: 9px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .dbtn {
+            flex: 1;
+            min-width: 130px;
+            padding: 9px 14px;
+            border-radius: 9px;
+            border: none;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .78rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: filter .18s, transform .15s;
+            text-decoration: none;
+        }
+        .dbtn:hover {
+            filter: brightness(1.12);
+            transform: translateY(-1px);
+        }
+        .dbtn-walk {
+            background: linear-gradient(135deg, #1a73e8, #0d5dbf);
+            color: #fff;
+        }
+        .dbtn-maps {
+            background: linear-gradient(135deg, #1a6aa8, #123a63);
+            color: #fff;
+        }
+        .dbtn-official {
+            background: rgba(255, 255, 255, .1);
+            border: 1px solid var(--border) !important;
+            color: var(--text);
+        }
+        .dbtn-tickets {
+            background: linear-gradient(135deg, #e6813a, #b8601f);
+            color: #fff;
+        }
+        .dbtn-int {
+            background: rgba(212, 168, 67, .15);
+            border: 1px solid rgba(212, 168, 67, .4) !important;
+            color: var(--gold);
+        }
+        .dbtn-int.done {
+            background: rgba(212, 168, 67, .32);
+            color: #ffe6a8;
+        }
+
+        /* ===== IMAGEN DEL EVENTO ===== */
+        .devent-image {
+            margin-top: 13px;
+        }
+        .devent-image img {
+            width: 100%;
+            max-height: 170px;
+            object-fit: contain;
+            background: rgba(255, 255, 255, .04);
+            border-radius: 10px;
+            cursor: zoom-in;
+            display: block;
+            transition: filter .15s;
+        }
+        .devent-image img:hover {
+            filter: brightness(1.08);
+        }
+
+        /* ===== VISOR DE IMAGEN A PANTALLA COMPLETA ===== */
+        .lightbox-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .92);
+            z-index: 20000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 20px;
+        }
+        .lightbox-overlay.open {
+            display: flex;
+        }
+        .lightbox-overlay img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+        }
+        .lightbox-close {
+            position: fixed;
+            top: 16px;
+            right: 18px;
+            background: rgba(255, 255, 255, .1);
+            border: 1px solid rgba(255, 255, 255, .25);
+            color: #fff;
+            font-size: 1.7rem;
+            line-height: 1;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s;
+        }
+        .lightbox-close:hover {
+            background: rgba(255, 255, 255, .24);
+        }
+
+        @media (min-width: 701px) {
+            .filters {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 7px;
+                row-gap: 8px;
+            }
+            .frow,
+            .frow-status-left {
+                display: contents;
+            }
+            #fcount {
+                margin-left: auto;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .sidebar {
+                display: none;
+            }
+            .dpanel {
+                left: 0;
+                max-height: 88%;
+            }
+            .dgrid {
+                grid-template-columns: 1fr 1fr;
+            }
+            #map {
+                flex: 1;
+                min-height: 52vh;
+            }
+            body.detail-open .filters {
+                display: none;
+            }
+            .fdiv {
+                display: none;
+            }
+            .hdr-actions .hdr-btn {
+                font-size: .65rem;
+                padding: 4px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== NOTIFICATIONS ===== -->
+    <div id="notif-container" role="alert" aria-live="polite"></div>
+
+    <!-- ===== VISOR DE IMAGEN A PANTALLA COMPLETA ===== -->
+    <div class="lightbox-overlay" id="lightbox-overlay">
+        <button class="lightbox-close" id="lightbox-close" aria-label="Cerrar imagen">&times;</button>
+        <img id="lightbox-img" src="" alt="">
+    </div>
+
+    <!-- ===== MODALS ===== -->
+    <!-- Modal: Aceptación de Política de Privacidad (solo se pide al activar la ubicación) -->
+    <div class="modal-overlay" id="modal-aceptar-politica">
+        <div class="modal-box">
+            <h2>📋 Política de Privacidad</h2>
+            <p>Esta aplicación (Düsseldorf — Agenda de Eventos) utiliza tu ubicación para mostrarte rutas a los eventos y almacena localmente tus preferencias (eventos marcados como "Me interesa") y una caché de geocodificación para mejorar el rendimiento.</p>
+            <p><strong>Datos tratados:</strong></p>
+            <ul>
+                <li><strong>Ubicación geográfica</strong> (solo con tu consentimiento explícito, no se almacena).</li>
+                <li><strong>Preferencias</strong> (eventos favoritos) guardadas en tu navegador.</li>
+                <li><strong>Caché de direcciones</strong> para agilizar la carga del mapa.</li>
+                <li><strong>IP y metadatos</strong> compartidos con servicios de terceros (Google Fonts, Leaflet CDN, CartoDB, Photon API, Google Maps).</li>
+            </ul>
+            <p>Puedes gestionar y eliminar tus datos en cualquier momento desde el botón <strong>“Gestionar mis datos”</strong> en la cabecera.</p>
+            <p>Al hacer clic en <strong>“Aceptar”</strong>, aceptas el tratamiento de tus datos según se describe en la <a href="#" onclick="event.preventDefault();openModal('modal-privacidad');">política de privacidad completa</a>.</p>
+            <div class="actions-row">
+                <button class="btn-primary" id="btn-aceptar-politica">Aceptar</button>
+                <button class="btn-secondary" id="btn-cancelar-politica">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Política de Privacidad (completa) -->
+    <div class="modal-overlay" id="modal-privacidad">
+        <div class="modal-box">
+            <h2>📋 Política de Privacidad</h2>
+            <p><strong>Finalidades:</strong> Mostrar eventos culturales y de ocio en Düsseldorf, facilitar la orientación geográfica y permitir al usuario guardar sus intereses (eventos favoritos).</p>
+            <p><strong>Base legal:</strong> Consentimiento del interesado (art. 6.1.a GDPR) para el uso de ubicación y almacenamiento de preferencias.</p>
+            <p><strong>Plazos de conservación:</strong> Los datos de ubicación no se almacenan; las preferencias (intereses) y la caché de geocodificación se guardan localmente en tu navegador hasta que decidas eliminarlos (máximo 30 días para la caché).</p>
+            <p><strong>Derechos:</strong> Puedes acceder, rectificar, suprimir, limitar el tratamiento y oponerte al uso de tus datos mediante el botón <em>“Gestionar mis datos”</em> disponible en la cabecera.</p>
+            <p><strong>Servicios de terceros utilizados:</strong></p>
+            <ul>
+                <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com) – IP del usuario. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
+                <li><strong>Leaflet CDN</strong> (unpkg.com) – IP del usuario. <a href="https://unpkg.com/about" target="_blank" rel="noopener">Información</a></li>
+                <li><strong>CartoDB</strong> (basemaps.cartocdn.com) – IP, para cargar el mapa base. <a href="https://carto.com/privacy/" target="_blank" rel="noopener">Política de privacidad</a></li>
+                <li><strong>Photon API</strong> (photon.komoot.io) – direcciones buscadas e IP. <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
+                <li><strong>Google Maps</strong> (enlaces de navegación) – al hacer clic, se transfieren datos a Google según su política. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
+            </ul>
+            <p>Estas transferencias pueden implicar el envío de datos a países fuera del EEE. Al utilizar la aplicación, aceptas estas transferencias.</p>
+            <button class="btn-close-modal" onclick="closeModal('modal-privacidad')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal: Consentimiento de Ubicación -->
+    <div class="modal-overlay" id="modal-consentimiento">
+        <div class="modal-box">
+            <h2>📍 Uso de tu ubicación</h2>
+            <p>Para mostrarte la ruta a los eventos y orientarte en el mapa, necesitamos conocer tu posición aproximada. Esta información <strong>no se almacena</strong> en nuestros servidores; solo se usa en tu navegador para calcular rutas.</p>
+            <p>Puedes activar o desactivar esta funcionalidad en cualquier momento desde el botón <em>“Mi Ubicación”</em>.</p>
+            <div class="checkbox-row">
+                <input type="checkbox" id="chk-high-accuracy">
+                <label for="chk-high-accuracy">Usar alta precisión (puede consumir más batería)</label>
+            </div>
+            <div class="actions-row">
+                <button class="btn-primary" id="btn-consent-accept">Aceptar y continuar</button>
+                <button class="btn-secondary" onclick="closeModal('modal-consentimiento')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Gestión de Datos -->
+    <div class="modal-overlay" id="modal-gestion">
+        <div class="modal-box">
+            <h2>🔐 Gestionar mis datos</h2>
+            <p>Aquí puedes ver y eliminar los datos que almacenamos localmente en tu navegador.</p>
+            <p><strong>Tus intereses (eventos favoritos):</strong></p>
+            <ul class="data-list" id="interest-list"></ul>
+            <p><strong>Datos almacenados:</strong></p>
+            <ul style="list-style:none; padding-left:0; font-size:0.85rem; color:#ccc;">
+                <li>• Intereses: <span id="interest-count">0</span> eventos</li>
+                <li>• Caché de geocodificación: <span id="cache-count">0</span> direcciones</li>
+            </ul>
+            <div class="actions-row">
+                <button class="btn-danger" id="btn-borrar-todo">Borrar todos mis datos</button>
+                <button class="btn-secondary" id="btn-borrar-cache">Borrar solo caché</button>
+                <button class="btn-danger" id="btn-revocar-consentimiento">Revocar consentimiento</button>
+                <button class="btn-close-modal" onclick="closeModal('modal-gestion')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header>
+        <div class="hdr-left">
+            <h1>Düsseldorf — <span>Agenda de Eventos</span></h1>
+            <p>Qué hacer, cuándo y dónde</p>
+        </div>
+        <div class="hdr-actions">
+            <button id="btn-locate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+                    <circle cx="12" cy="12" r="9" stroke-opacity=".3"/>
+                </svg>
+                Mi Ubicación
+            </button>
+            <button class="hdr-btn" id="btn-privacidad">📋 Política de Privacidad</button>
+            <button class="hdr-btn" id="btn-gestion">🔐 Gestionar mis datos</button>
+        </div>
+    </header>
+
+    <!-- ===== FILTERS ===== -->
+    <div class="filters" id="filters">
+        <div class="frow">
+            <span class="flabel">Semana</span>
+            <button class="chip wk-nav" id="wk-prev" title="Semana anterior">‹</button>
+            <button class="chip wk-label active" id="wk-label"></button>
+            <button class="chip wk-nav" id="wk-next" title="Semana siguiente">›</button>
+            <button class="chip wk-all" id="wk-all">Todas</button>
+        </div>
+        <div class="fdiv"></div>
+        <div class="frow" id="day-chips">
+            <span class="flabel">Día</span>
+            <button class="chip day-chip active" data-day="all">Todos</button>
+            <button class="chip day-chip" data-day="1">Lun</button>
+            <button class="chip day-chip" data-day="2">Mar</button>
+            <button class="chip day-chip" data-day="3">Mié</button>
+            <button class="chip day-chip" data-day="4">Jue</button>
+            <button class="chip day-chip" data-day="5">Vie</button>
+            <button class="chip day-chip" data-day="6">Sáb</button>
+            <button class="chip day-chip" data-day="0">Dom</button>
+        </div>
+        <div class="fdiv"></div>
+        <div class="frow" id="type-chips">
+            <span class="flabel">Tipo</span>
+            <button class="chip type-chip active" data-type="all">Todos</button>
+        </div>
+        <div class="fdiv"></div>
+        <div class="frow" id="price-chips">
+            <span class="flabel">Precio</span>
+            <button class="chip price-chip active" data-price="all">Todos</button>
+            <button class="chip price-chip" data-price="gratis">Gratis</button>
+            <button class="chip price-chip" data-price="pago">De pago</button>
+        </div>
+        <div class="fdiv"></div>
+        <div class="frow frow-status">
+            <div class="frow-status-left">
+                <button class="chip interest-chip" id="f-interest">★ Me interesa</button>
+                <span id="geo-status"></span>
+            </div>
+            <span id="fcount">— eventos</span>
+        </div>
+    </div>
+
+    <!-- ===== MAIN ===== -->
+    <div class="main">
+        <aside class="sidebar" id="sidebar"></aside>
+        <div id="map"></div>
+        <div class="dpanel" id="dpanel">
+            <div class="dhead">
+                <div class="dname" id="dname"></div>
+                <button class="dclosebtn" id="dclose">✕ Cerrar</button>
+            </div>
+            <div class="dbody" id="dbody"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================================
+        //  SEGURIDAD Y GDPR – IMPLEMENTACIÓN
+        //  - Sanitización de salidas (escapeHTML)
+        //  - Notificaciones UI en lugar de alert()
+        //  - Modales para política de privacidad, consentimiento y gestión de datos
+        //  - Caducidad de caché (30 días)
+        //  - Validación del JSON
+        //  - CSP, X-Frame-Options, X-Content-Type-Options (meta)
+        //  - Integridad de recursos externos (SRI)
+        //  - Aceptación obligatoria de política de privacidad al inicio con botón Cancelar
+        //  - Bloqueo de la app si se cancela
+        //  - Revocación de consentimiento desde gestión de datos
+        // ========================================================================
+
+        // ===== FUNCIÓN DE ESCAPE (XSS) =====
+        function escapeHTML(str) {
+            if (str == null) return '';
+            var map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(str).replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        function escapeAttr(str) {
+            if (str == null) return '';
+            return String(str).replace(/['"]/g, function(m) { return m === '"' ? '&quot;' : '&#039;'; });
+        }
+
+        // ===== NOTIFICACIONES =====
+        function notify(message, type) {
+            type = type || 'info';
+            var container = document.getElementById('notif-container');
+            var el = document.createElement('div');
+            el.className = 'notif ' + type;
+            var iconMap = { error: '❌', success: '✅', info: 'ℹ️' };
+            el.innerHTML = '<span class="notif-icon">' + (iconMap[type] || 'ℹ️') + '</span>' +
+                '<span>' + escapeHTML(message) + '</span>' +
+                '<button class="notif-close" aria-label="Cerrar notificación">&times;</button>';
+            container.appendChild(el);
+            var close = el.querySelector('.notif-close');
+            close.addEventListener('click', function() { dismissNotif(el); });
+            setTimeout(function() { dismissNotif(el); }, 8000);
+        }
+
+        function dismissNotif(el) {
+            if (!el || !el.parentNode) return;
+            el.style.animation = 'notifOut 0.25s ease forwards';
+            setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+        }
+
+        // ===== VISOR DE IMAGEN A PANTALLA COMPLETA =====
+        window.openLightbox = function(src, alt) {
+            var img = document.getElementById('lightbox-img');
+            img.src = src;
+            img.alt = alt;
+            document.getElementById('lightbox-overlay').classList.add('open');
+        };
+        function closeLightbox() {
+            document.getElementById('lightbox-overlay').classList.remove('open');
+            document.getElementById('lightbox-img').src = '';
+        }
+        document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+        document.getElementById('lightbox-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeLightbox();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('lightbox-overlay').classList.contains('open')) closeLightbox();
+        });
+
+        // ===== MODALES =====
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    overlay.classList.remove('open');
+                }
+            });
+        });
+
+        // ===== ACEPTACIÓN DE POLÍTICA DE PRIVACIDAD =====
+        var POLITICA_ACEPTADA_KEY = 'dus_politica_aceptada_v1';
+
+        function isPoliticaAceptada() {
+            return localStorage.getItem(POLITICA_ACEPTADA_KEY) === 'true';
+        }
+
+        function acceptPolitica() {
+            localStorage.setItem(POLITICA_ACEPTADA_KEY, 'true');
+            closeModal('modal-aceptar-politica');
+            notify('Has aceptado la política de privacidad. Pulsa de nuevo "Mi Ubicación" para continuar.', 'success');
+        }
+
+        function cancelPolitica() {
+            closeModal('modal-aceptar-politica');
+            notify('De acuerdo: no se activará la ubicación en tiempo real. Puedes activarla cuando quieras desde "Mi Ubicación".', 'info');
+        }
+
+        function stopLiveLocation() {
+            if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+            if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+            if (userCircle) { map.removeLayer(userCircle); userCircle = null; }
+            userPos = null;
+        }
+
+        function revocarConsentimiento() {
+            localStorage.removeItem(POLITICA_ACEPTADA_KEY);
+            closeModal('modal-gestion');
+            stopLiveLocation();
+            notify('Has revocado el consentimiento de ubicación. La próxima vez que actives "Mi Ubicación" se te volverá a preguntar.', 'info');
+        }
+
+        // Botones
+        document.getElementById('btn-aceptar-politica').addEventListener('click', acceptPolitica);
+        document.getElementById('btn-cancelar-politica').addEventListener('click', cancelPolitica);
+        document.getElementById('btn-revocar-consentimiento').addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que deseas revocar el consentimiento de ubicación? Se detendrá el seguimiento en tiempo real si está activo.')) {
+                revocarConsentimiento();
+            }
+        });
+
+        // La política de privacidad NUNCA se pide de entrada: solo se pide cuando el
+        // usuario intenta activar la ubicación en tiempo real (ver handler de btn-locate).
+        // Por defecto la aceptación está denegada (isPoliticaAceptada() empieza en false),
+        // y si se cancela o se revoca, la app sigue funcionando con normalidad: simplemente
+        // no hay ubicación en tiempo real.
+
+        // ===== BOTONES DE CABECERA =====
+        // Leer la política o gestionar los datos propios no requiere haber aceptado
+        // nada de antemano: solo activar la ubicación pide el consentimiento.
+        document.getElementById('btn-privacidad').addEventListener('click', function() {
+            openModal('modal-privacidad');
+        });
+
+        document.getElementById('btn-gestion').addEventListener('click', function() {
+            openModal('modal-gestion');
+            refreshGestionModal();
+        });
+
+        // ===== GESTIÓN DE DATOS =====
+        function refreshGestionModal() {
+            var interests = Array.from(interestSet);
+            var list = document.getElementById('interest-list');
+            if (interests.length === 0) {
+                list.innerHTML = '<li style="color:var(--muted);">No tienes eventos marcados como «Me interesa».</li>';
+            } else {
+                list.innerHTML = interests.map(function(id) {
+                    var ev = EVENTS.find(function(e) { return e.id === id; });
+                    return '<li>' + (ev ? escapeHTML(ev.nombre) : id) + '</li>';
+                }).join('');
+            }
+            document.getElementById('interest-count').textContent = interests.length;
+            // Solo contamos lo geocodificado en caliente contra Photon: la tabla
+            // precargada (VENUE_COORDS) no es "cach\u00e9" borrable, viene con la app.
+            var cacheKeys = Object.keys(geocache).filter(function(k) {
+                return geocache[k] !== null && geocache[k] !== undefined && !VENUE_COORDS.hasOwnProperty(k);
+            });
+            document.getElementById('cache-count').textContent = cacheKeys.length;
+        }
+
+        document.getElementById('btn-borrar-todo').addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que deseas borrar todos tus datos (intereses y caché)?')) {
+                interestSet.clear();
+                saveInterest();
+                localStorage.removeItem(GEOCACHE_KEY);
+                loadGeocache(); // vuelve a sembrar solo las coordenadas precargadas del propio sitio
+                renderList();
+                renderMarkers();
+                refreshGestionModal();
+                notify('Todos tus datos han sido eliminados.', 'success');
+            }
+        });
+
+        document.getElementById('btn-borrar-cache').addEventListener('click', function() {
+            localStorage.removeItem(GEOCACHE_KEY);
+            loadGeocache(); // vuelve a sembrar solo las coordenadas precargadas del propio sitio
+            renderMarkers();
+            refreshGestionModal();
+            notify('Caché de geocodificación borrada.', 'success');
+        });
+
+        // ========================================================================
+        //  CONFIGURACIÓN ORIGINAL
+        // ========================================================================
+        var CITY = "Düsseldorf";
+        var CITY_CENTER = [51.2277, 6.7735];
+        var TYPE_EMOJI = {
+            "música": "🎵",
+            "comida": "🍽️",
+            "arte": "🎨",
+            "baile": "💃",
+            "cine": "🎬",
+            "teatro": "🎭",
+            "deporte": "⚽",
+            "mercado": "🛍️",
+            "familia": "👨‍👩‍👧",
+            "fiesta": "🎉"
+        };
+        var TYPE_EMOJI_FALLBACK = "📌";
+        // Nombres visibles para el usuario cuando difieren del valor crudo del JSON
+        // (el valor crudo, p.ej. "comida", sigue siendo el que se usa para filtrar).
+        var TYPE_LABELS = { "comida": "Gastronomía" };
+        function typeLabel(t) {
+            if (TYPE_LABELS[t]) return TYPE_LABELS[t];
+            return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+        var TYPE_COLORS = ["#4ECBA0", "#E07060", "#5DADE2", "#BB8FCE", "#F4D03F", "#EB984E", "#48C9B0", "#EC7063", "#85C1E9",
+            "#82E0AA"
+        ];
+        var DAY_ABBR = { 0: "Dom", 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb" };
+        var MONTH_ABBR = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+        var INTEREST_KEY = "dus_ev_interes_v1";
+        var GEOCACHE_KEY = "dus_ev_geocache_v1";
+        var GEOCACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 días
+
+        // ===== ESTADO =====
+        var EVENTS = [];
+        var interestSet = new Set();
+        var geocache = {};
+        var weekMode = "week";
+        var refMonday = getMonday(new Date());
+        var daySelected = new Set();
+        var typeSelected = new Set();
+        var priceFilter = "all";
+        var interestOnly = false;
+        var activeId = null,
+            markers = {},
+            userPos = null;
+        var userMarker = null,
+            userCircle = null,
+            watchId = null;
+        var consentGiven = false;
+
+        // ===== UTILIDADES =====
+        function getMonday(d) {
+            var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            var day = x.getDay();
+            var diff = (day === 0 ? -6 : 1 - day);
+            x.setDate(x.getDate() + diff);
+            return x;
+        }
+
+        function addDays(d, n) { var x = new Date(d);
+            x.setDate(x.getDate() + n); return x; }
+
+        function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() ===
+                b.getDate(); }
+
+        function fmtDayMonth(d) { return d.getDate() + " " + MONTH_ABBR[d.getMonth()]; }
+
+        function slug(s) {
+            return (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+        }
+
+        function typeColor(t) {
+            var h = 0;
+            for (var i = 0; i < t.length; i++) h = (h + t.charCodeAt(i) * 7) % TYPE_COLORS.length;
+            return TYPE_COLORS[h];
+        }
+
+        function typeEmoji(t) { return TYPE_EMOJI[t] || TYPE_EMOJI_FALLBACK; }
+
+        // ===== CARGA DE DATOS =====
+        function buildEvent(raw) {
+            var fecha = raw.fecha,
+                hora = raw.horaInicio || "00:00";
+            var dt = new Date(fecha + "T" + hora + ":00");
+            var id = slug(raw.nombre) + "_" + fecha + "_" + hora.replace(":", "");
+            return {
+                id: id,
+                nombre: raw.nombre,
+                urlOficial: raw.urlOficial || null,
+                urlTickets: raw.urlTickets || null,
+                direccion: raw.direccion || null,
+                ubicacionGoogleMaps: raw.ubicacionGoogleMaps || null,
+                fecha: fecha,
+                horaInicio: raw.horaInicio || null,
+                descripcion: raw.descripcion || "",
+                coste: raw.coste === "pago" ? "pago" : "gratis",
+                entorno: raw.entorno || null,
+                tipo: Array.isArray(raw.tipo) ? raw.tipo : [],
+                imagen: raw.imagen || null,
+                meInteresaDefault: !!raw.meInteresa,
+                dateObj: dt,
+                dayOfWeek: dt.getDay()
+            };
+        }
+
+        function restoreInterestState() {
+            var stored = localStorage.getItem(INTEREST_KEY);
+            if (stored === null) {
+                interestSet = new Set(EVENTS.filter(function(e) { return e.meInteresaDefault; }).map(function(e) { return e
+                        .id; }));
+                localStorage.setItem(INTEREST_KEY, JSON.stringify(Array.from(interestSet)));
+            } else {
+                interestSet = new Set(JSON.parse(stored));
+            }
+        }
+
+        function saveInterest() { localStorage.setItem(INTEREST_KEY, JSON.stringify(Array.from(interestSet))); }
+
+        // ===== CACHÉ CON CADUCIDAD =====
+        function loadGeocache() {
+            try {
+                var raw = localStorage.getItem(GEOCACHE_KEY);
+                if (raw) {
+                    var parsed = JSON.parse(raw);
+                    var now = Date.now();
+                    var valid = {};
+                    Object.keys(parsed).forEach(function(k) {
+                        var entry = parsed[k];
+                        if (entry && typeof entry === 'object' && entry.timestamp) {
+                            if (now - entry.timestamp < GEOCACHE_TTL) {
+                                valid[k] = entry.data;
+                            }
+                        } else {
+                            valid[k] = entry;
+                        }
+                    });
+                    geocache = valid;
+                    var toStore = {};
+                    Object.keys(geocache).forEach(function(k) {
+                        toStore[k] = { data: geocache[k], timestamp: Date.now() };
+                    });
+                    localStorage.setItem(GEOCACHE_KEY, JSON.stringify(toStore));
+                } else {
+                    geocache = {};
+                }
+            } catch (e) {
+                geocache = {};
+            }
+            Object.keys(VENUE_COORDS).forEach(function(addr) {
+                geocache[addr] = VENUE_COORDS[addr];
+            });
+            var toStore = {};
+            Object.keys(geocache).forEach(function(k) {
+                toStore[k] = { data: geocache[k], timestamp: Date.now() };
+            });
+            localStorage.setItem(GEOCACHE_KEY, JSON.stringify(toStore));
+        }
+
+        function saveGeocache() {
+            var toStore = {};
+            Object.keys(geocache).forEach(function(k) {
+                toStore[k] = { data: geocache[k], timestamp: Date.now() };
+            });
+            localStorage.setItem(GEOCACHE_KEY, JSON.stringify(toStore));
+        }
+
+        var VENUE_COORDS = {
+            "Fichtenstraße 40, 40233 Düsseldorf, Alemania": { lat: 51.216858, lng: 6.8106831 },
+            "Burgplatz, 40213 Düsseldorf, Alemania": { lat: 51.2267855, lng: 6.7715278 },
+            "Gustaf-Gründgens-Platz, 40211 Düsseldorf, Alemania": { lat: 51.2274482, lng: 6.7834705 },
+            "Tonhallenufer 2, 40479 Düsseldorf, Alemania": { lat: 51.2313685, lng: 6.7711002 },
+            "Maurice-Ravel-Park, 40477 Düsseldorf, Alemania": { lat: 51.2394871, lng: 6.7955851 },
+            "Hauptstraße / Heubesstraße, 40597 Düsseldorf-Benrath, Alemania": { lat: 51.1637037, lng: 6.8740583 }
+        };
+
+        // ===== GEOCODIFICACIÓN =====
+        function queryAddress(dir) {
+            var hasCity = /d.sseldorf/i.test(dir);
+            return hasCity ? dir : (dir + ", " + CITY + ", Alemania");
+        }
+
+        function geocodeAddress(direccion) {
+            return new Promise(function(resolve) {
+                if (!direccion) { resolve(null); return; }
+                if (geocache[direccion] !== undefined && geocache[direccion] !== null) { resolve(geocache[direccion]);
+                    return; }
+                fetch("https://photon.komoot.io/api/?limit=1&q=" + encodeURIComponent(queryAddress(direccion)))
+                    .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+                    .then(function(res) {
+                        var f = res && res.features && res.features[0];
+                        var pos = f ? { lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] } : null;
+                        if (!pos) {
+                            console.warn("No se pudo geolocalizar:", direccion);
+                        }
+                        geocache[direccion] = pos;
+                        saveGeocache();
+                        resolve(pos);
+                    })
+                    .catch(function(err) {
+                        console.error("Error geolocalizando \"" + direccion + "\":", err);
+                        resolve(null);
+                    });
+            });
+        }
+
+        function startGeocodeQueue() {
+            var addrs = Array.from(new Set(EVENTS.filter(function(e) { return e.direccion; }).map(function(e) { return e
+                    .direccion; })));
+            var pending = addrs.filter(function(a) { return geocache[a] === undefined; });
+            var status = document.getElementById("geo-status");
+            if (!pending.length) { status.textContent = "";
+                renderMarkers(); return; }
+            var done = 0,
+                total = pending.length;
+
+            function next() {
+                if (!pending.length) {
+                    status.textContent = "";
+                    renderMarkers();
+                    return;
+                }
+                status.textContent = "Localizando mapa… " + done + "/" + total;
+                var addr = pending.shift();
+                geocodeAddress(addr).then(function() {
+                    done++;
+                    renderMarkers();
+                    setTimeout(next, 1100);
+                });
+            }
+            next();
+        }
+
+        // ===== MAPA =====
+        var map = L.map("map", { center: CITY_CENTER, zoom: 12, zoomControl: true, attributionControl: false });
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19 }).addTo(map);
+        map.on("click", closeDetail);
+
+        function makeIcon(color, emoji, count, active) {
+            var activeStyle = active ? "transform:scale(1.3) rotate(-45deg);box-shadow:0 0 0 3px rgba(255,255,255,.7);" :
+                "";
+            var badge = count > 1 ? '<div class="mi-count">' + count + '</div>' : "";
+            return L.divIcon({
+                html: '<div class="mi" style="background:linear-gradient(135deg,' + color + ',#16213E);' +
+                    activeStyle + '"><div class="inn">' + emoji + '</div>' + badge + '</div>',
+                className: "",
+                iconSize: [36, 46],
+                iconAnchor: [18, 46]
+            });
+        }
+
+        // ===== DETALLE =====
+        function priceLabel(e) { return e.coste === "gratis" ? "🆓 Gratis" : "💶 De pago"; }
+
+        function typeTagsHTML(e) {
+            return e.tipo.map(function(t) {
+                var c = typeColor(t);
+                return '<span class="badge" style="background:' + c + '22;color:' + c + '">' + typeEmoji(t) + ' ' +
+                    escapeHTML(typeLabel(t)) + '</span>';
+            }).join("");
+        }
+
+        function dateTimeLabel(e) {
+            var lbl = DAY_ABBR[e.dayOfWeek] + " " + fmtDayMonth(e.dateObj);
+            var today = new Date();
+            if (sameDay(e.dateObj, today)) lbl = "Hoy";
+            else if (sameDay(e.dateObj, addDays(today, 1))) lbl = "Mañana";
+            if (e.horaInicio) lbl += " · " + e.horaInicio;
+            return lbl;
+        }
+
+        function openDetail(id) {
+            var e = EVENTS.find(function(x) { return x.id === id; });
+            if (!e) return;
+            activeId = id;
+            var isInt = interestSet.has(id);
+            var orig = userPos ? userPos.lat + "," + userPos.lng : "";
+            var addrForMaps = e.direccion ? encodeURIComponent(e.direccion + ", " + CITY + ", Alemania") : encodeURIComponent(e
+                .nombre + ", " + CITY);
+            var walkU = "https://www.google.com/maps/dir/?api=1" + (orig ? "&origin=" + orig : "") + "&destination=" +
+                addrForMaps + "&travelmode=walking";
+            var mapsU = e.ubicacionGoogleMaps || ("https://www.google.com/maps/search/?api=1&query=" + addrForMaps);
+
+            var others = EVENTS.filter(function(x) { return x.nombre === e.nombre; }).sort(function(a, b) { return a
+                    .dateObj - b.dateObj; });
+            var otherHTML = "";
+            if (others.length > 1) {
+                otherHTML = '<div class="dblock wide"><div class="dlabel">🔄 Otras fechas de este evento</div>' +
+                    '<div class="dother">' + others.map(function(o) {
+                        var cur = o.id === e.id;
+                        return '<button class="' + (cur ? "cur" : "") + '" ' + (cur ? "disabled" :
+                            'onclick="selectP(\'' + escapeAttr(o.id) + '\')"') + '>' +
+                            fmtDayMonth(o.dateObj) + (o.horaInicio ? ", " + o.horaInicio : "") + '</button>';
+                    }).join("") + '</div></div>';
+            }
+
+            var imgHTML = "";
+            if (e.imagen) {
+                var imgSrc = "images/" + e.imagen;
+                imgHTML = '<div class="devent-image">' +
+                    '<img src="' + escapeHTML(imgSrc) + '" alt="' + escapeHTML(e.nombre) + '" loading="lazy" ' +
+                    'onerror="this.parentElement.style.display=\'none\'" ' +
+                    'onclick="openLightbox(\'' + escapeAttr(imgSrc) + '\', \'' + escapeAttr(e.nombre) + '\')">' +
+                    '</div>';
+            }
+
+            document.getElementById("dname").textContent = e.nombre;
+            document.getElementById("dbody").innerHTML =
+                '<div class="dgrid">' +
+                '<div class="dblock"><div class="dlabel">Fecha</div><div class="dval">' + escapeHTML(dateTimeLabel(e)) +
+                '</div></div>' +
+                '<div class="dblock"><div class="dlabel">Precio</div><div class="dval">' + escapeHTML(priceLabel(e)) +
+                '</div></div>' +
+                '<div class="dblock"><div class="dlabel">Entorno</div><div class="dval">' + (e.entorno ? escapeHTML(e
+                    .entorno.charAt(0).toUpperCase() + e.entorno.slice(1)) : "—") + '</div></div>' +
+                '<div class="dblock"><div class="dlabel">📍 Dirección</div><div class="dval">' + (e.direccion ?
+                    escapeHTML(e.direccion) : "No especificada (evento descentralizado)") + '</div></div>' +
+                otherHTML +
+                '</div>' +
+                '<div class="dtags">' + typeTagsHTML(e) + '</div>' +
+                '<div class="ddesc">' + escapeHTML(e.descripcion) + '</div>' +
+                '<div class="dactions">' +
+                (e.direccion ? (
+                    '<a class="dbtn dbtn-walk" href="' + walkU + '" target="_blank" rel="noopener" onclick="return requireLocationForRoute()">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>' +
+                    'Cómo llegar' +
+                    '</a>' +
+                    '<a class="dbtn dbtn-maps" href="' + mapsU + '" target="_blank" rel="noopener">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                    'Ver en Maps' +
+                    '</a>'
+                ) : "") +
+                (e.urlOficial ? '<a class="dbtn dbtn-official" href="' + e.urlOficial +
+                    '" target="_blank" rel="noopener">🌐 Sitio oficial</a>' : "") +
+                (e.urlTickets ? '<a class="dbtn dbtn-tickets" href="' + e.urlTickets +
+                    '" target="_blank" rel="noopener">🎫 Comprar entradas</a>' : "") +
+                '<button class="dbtn dbtn-int' + (isInt ? " done" : "") + '" onclick="toggleInterest(\'' + escapeAttr(
+                    id) + '\')">' +
+                (isInt ? "★ Te interesa" : "☆ Me interesa") +
+                '</button>' +
+                '</div>' +
+                imgHTML;
+
+            document.getElementById("dpanel").classList.add("open");
+            document.body.classList.add("detail-open");
+            pushPanelHistory();
+            renderList();
+            renderMarkers();
+        }
+
+        function closePanelVisual() {
+            activeId = null;
+            document.getElementById("dpanel").classList.remove("open");
+            document.body.classList.remove("detail-open");
+            renderList();
+            renderMarkers();
+        }
+
+        function closeDetail() {
+            var dp = document.getElementById("dpanel");
+            if (!dp.classList.contains("open")) { activeId = null; return; }
+            if (panelHistoryPushed) {
+                history.back();
+            } else {
+                closePanelVisual();
+            }
+        }
+        document.getElementById("dclose").addEventListener("click", closeDetail);
+
+        // ===== HISTORIAL =====
+        var panelHistoryPushed = false;
+
+        function pushPanelHistory() {
+            if (panelHistoryPushed) return;
+            try { history.pushState({ dusPanel: true }, "", location.href);
+                panelHistoryPushed = true; } catch (e) {}
+        }
+        window.addEventListener("popstate", function() {
+            panelHistoryPushed = false;
+            if (document.getElementById("dpanel").classList.contains("open")) closePanelVisual();
+        });
+
+        window.toggleInterest = function(id) {
+            if (interestSet.has(id)) interestSet.delete(id);
+            else interestSet.add(id);
+            saveInterest();
+            if (activeId === id) openDetail(id);
+            else renderList();
+            renderMarkers();
+        };
+
+        // ===== FILTRADO =====
+        function inActiveWeek(e) {
+            if (weekMode === "all") return true;
+            var end = addDays(refMonday, 6);
+            var d = new Date(e.dateObj.getFullYear(), e.dateObj.getMonth(), e.dateObj.getDate());
+            return d >= refMonday && d <= end;
+        }
+
+        function filtered() {
+            return EVENTS.filter(function(e) {
+                if (!inActiveWeek(e)) return false;
+                if (daySelected.size > 0 && !daySelected.has(String(e.dayOfWeek))) return false;
+                if (typeSelected.size > 0 && !e.tipo.some(function(t) { return typeSelected.has(t); })) return false;
+                if (priceFilter !== "all" && e.coste !== priceFilter) return false;
+                if (interestOnly && !interestSet.has(e.id)) return false;
+                return true;
+            }).sort(function(a, b) { return a.dateObj - b.dateObj; });
+        }
+
+        // ===== RENDER LISTA =====
+        function renderList() {
+            var events = filtered();
+            var fc = document.getElementById("fcount");
+            fc.textContent = events.length + " evento" + (events.length !== 1 ? "s" : "");
+            var sb = document.getElementById("sidebar");
+            if (!events.length) {
+                sb.innerHTML = '<div class="no-res">Sin eventos con estos filtros.' +
+                    (weekMode === "week" ? '<br><button onclick="setWeekAll()">Ver todas las semanas</button>' : '') +
+                    '</div>';
+                return;
+            }
+            sb.innerHTML = events.map(function(e) {
+                var isInt = interestSet.has(e.id);
+                var a = activeId === e.id;
+                var mainType = e.tipo[0];
+                var icon = mainType ? typeEmoji(mainType) : TYPE_EMOJI_FALLBACK;
+                var tags = e.tipo.slice(0, 3).map(function(t) {
+                    var c = typeColor(t);
+                    return '<span class="badge" style="background:' + c + '22;color:' + c + '">' + escapeHTML(typeLabel(t)) +
+                        '</span>';
+                }).join("");
+                return '<div class="pcard' + (a ? " active" : "") + (isInt ? " interesa" : "") +
+                    '" onclick="selectP(\'' + escapeAttr(e.id) + '\')">' +
+                    '<div class="pdate">' + escapeHTML(dateTimeLabel(e)) + '</div>' +
+                    '<div class="ph">' +
+                    '<div class="picon">' + icon + '</div>' +
+                    '<div class="pname">' + escapeHTML(e.nombre) + '</div>' +
+                    '</div>' +
+                    '<div class="pbadges">' +
+                    '<span class="badge ' + (e.coste === "gratis" ? "b-free" : "b-paid") + '">' + (e.coste ===
+                        "gratis" ? "Gratis" : "De pago") + '</span>' +
+                    tags +
+                    '</div>' +
+                    '<div class="pdesc">' + escapeHTML(e.descripcion.substring(0, 90)) + '…</div>' +
+                    '<div class="pfoot">' +
+                    '<div class="paddr">' + (e.direccion ? escapeHTML(e.direccion) : "Ubicación descentralizada") +
+                    '</div>' +
+                    '<button class="pvbtn" onclick="event.stopPropagation();toggleInterest(\'' + escapeAttr(e.id) +
+                    '\')">' + (isInt ? "★" : "☆") + ' Me interesa</button>' +
+                    '</div>' +
+                    '</div>';
+            }).join("");
+        }
+
+        // ===== RENDER MAPA =====
+        function renderMarkers() {
+            Object.keys(markers).forEach(function(k) { markers[k].remove();
+                delete markers[k]; });
+            var events = filtered().filter(function(e) { return e.direccion && geocache[e.direccion]; });
+            var byVenue = {};
+            events.forEach(function(e) {
+                var key = e.direccion;
+                if (!byVenue[key]) byVenue[key] = [];
+                byVenue[key].push(e);
+            });
+            Object.keys(byVenue).forEach(function(key) {
+                var group = byVenue[key];
+                var pos = geocache[key];
+                if (!pos) return;
+                var soonest = group[0];
+                var mainType = soonest.tipo[0];
+                var color = mainType ? typeColor(mainType) : "#5DADE2";
+                var emoji = mainType ? typeEmoji(mainType) : TYPE_EMOJI_FALLBACK;
+                var active = group.some(function(e) { return e.id === activeId; });
+                var m = L.marker([pos.lat, pos.lng], { icon: makeIcon(color, emoji, group.length, active) }).addTo(
+                map);
+                m.on("click", function(ev) {
+                    L.DomEvent.stopPropagation(ev);
+                    if (group.length === 1) {
+                        map.setView([pos.lat, pos.lng], 16, { animate: true });
+                        openDetail(group[0].id);
+                        scrollToCard(group[0].id);
+                    } else {
+                        var html = '<div class="venue-pop"><b>' + group.length + ' eventos aquí</b>' +
+                            group.map(function(e) {
+                                return '<div class="vp-item" onclick="selectP(\'' + escapeAttr(e.id) +
+                                    '\')">' + escapeHTML(dateTimeLabel(e)) + ' — ' + escapeHTML(e
+                                    .nombre) + '</div>';
+                            }).join("") + '</div>';
+                        m.bindPopup(html).openPopup();
+                    }
+                });
+                markers[key] = m;
+            });
+        }
+
+        window.selectP = function(id) {
+            var e = EVENTS.find(function(x) { return x.id === id; });
+            if (!e) return;
+            if (e.direccion && geocache[e.direccion]) {
+                map.setView([geocache[e.direccion].lat, geocache[e.direccion].lng], 16, { animate: true });
+            } else if (e.direccion) {
+                geocodeAddress(e.direccion).then(function(pos) {
+                    if (pos) { map.setView([pos.lat, pos.lng], 16, { animate: true });
+                        renderMarkers(); }
+                });
+            }
+            openDetail(id);
+            scrollToCard(id);
+        };
+
+        function scrollToCard(id) {
+            var el = document.querySelector('.pcard[onclick*="' + id + '"]');
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        // ===== FILTROS: SEMANA =====
+        function renderWeekLabel() {
+            var lbl = document.getElementById("wk-label");
+            var allBtn = document.getElementById("wk-all");
+            if (weekMode === "all") {
+                lbl.textContent = "Todos los eventos";
+                lbl.classList.add("dim");
+                lbl.classList.remove("active");
+                allBtn.classList.add("active");
+            } else {
+                var end = addDays(refMonday, 6);
+                lbl.textContent = fmtDayMonth(refMonday) + " – " + fmtDayMonth(end);
+                lbl.classList.remove("dim");
+                lbl.classList.add("active");
+                allBtn.classList.remove("active");
+            }
+        }
+        window.setWeekAll = function() { weekMode = "all";
+            renderWeekLabel();
+            resetTypeToAll();
+            closeDetail();
+            renderList();
+            renderMarkers(); };
+        document.getElementById("wk-all").addEventListener("click", function() { setWeekAll(); });
+        document.getElementById("wk-prev").addEventListener("click", function() {
+            refMonday = addDays(refMonday, -7);
+            weekMode = "week";
+            renderWeekLabel();
+            resetTypeToAll();
+            closeDetail();
+            renderList();
+            renderMarkers();
+        });
+        document.getElementById("wk-next").addEventListener("click", function() {
+            refMonday = addDays(refMonday, 7);
+            weekMode = "week";
+            renderWeekLabel();
+            resetTypeToAll();
+            closeDetail();
+            renderList();
+            renderMarkers();
+        });
+
+        // ===== FILTROS: DÍA / TIPO / PRECIO / INTERÉS =====
+        function syncChipGroup(containerId, dataKey, currentValue) {
+            document.getElementById(containerId).querySelectorAll(".chip").forEach(function(c) {
+                var on = (currentValue === "all") || (c.dataset[dataKey] === currentValue);
+                c.classList.toggle("active", on);
+                if (c.dataset.color) {
+                    if (on) { c.style.color = c.dataset.color;
+                        c.style.borderColor = c.dataset.color;
+                        c.style.background = c.dataset.color + "22"; } else { c.style.color = "";
+                        c.style.borderColor = "";
+                        c.style.background = ""; }
+                }
+            });
+        }
+
+        function selectAllInGroup(containerId, dataKey) {
+            var s = new Set();
+            document.getElementById(containerId).querySelectorAll(".chip").forEach(function(c) {
+                if (c.dataset[dataKey] !== "all") s.add(c.dataset[dataKey]);
+            });
+            return s;
+        }
+
+        function toggleAllInGroup(containerId, dataKey, currentSelected) {
+            var full = selectAllInGroup(containerId, dataKey);
+            return (currentSelected.size === full.size) ? new Set() : full;
+        }
+
+        function syncMultiChipGroup(containerId, dataKey, selectedSet) {
+            var chips = document.getElementById(containerId).querySelectorAll(".chip");
+            var total = 0;
+            chips.forEach(function(c) { if (c.dataset[dataKey] !== "all") total++; });
+            chips.forEach(function(c) {
+                var val = c.dataset[dataKey];
+                var on = (val === "all") ? (selectedSet.size === total) : selectedSet.has(val);
+                c.classList.toggle("active", on);
+                if (c.dataset.color) {
+                    if (on) { c.style.color = c.dataset.color;
+                        c.style.borderColor = c.dataset.color;
+                        c.style.background = c.dataset.color + "22"; } else { c.style.color = "";
+                        c.style.borderColor = "";
+                        c.style.background = ""; }
+                }
+            });
+        }
+
+        // Cambiar el D\u00cdA o la SEMANA reactiva todos los TIPOS: as\u00ed se ve de entrada
+        // todo lo que hay para ese periodo, y luego el usuario filtra por tipo si quiere.
+        function resetTypeToAll() {
+            typeSelected = selectAllInGroup("type-chips", "type");
+            syncMultiChipGroup("type-chips", "type", typeSelected);
+        }
+
+        daySelected = selectAllInGroup("day-chips", "day");
+        syncMultiChipGroup("day-chips", "day", daySelected);
+
+        document.getElementById("day-chips").addEventListener("click", function(e) {
+            var btn = e.target.closest(".chip");
+            if (!btn) return;
+            if (btn.dataset.day === "all") {
+                daySelected = toggleAllInGroup("day-chips", "day", daySelected);
+            } else {
+                var v = btn.dataset.day;
+                if (daySelected.has(v)) daySelected.delete(v);
+                else daySelected.add(v);
+            }
+            syncMultiChipGroup("day-chips", "day", daySelected);
+            resetTypeToAll();
+            closeDetail();
+            renderList();
+            renderMarkers();
+        });
+
+        document.getElementById("type-chips").addEventListener("click", function(e) {
+            var btn = e.target.closest(".chip");
+            if (!btn) return;
+            if (btn.dataset.type === "all") {
+                typeSelected = toggleAllInGroup("type-chips", "type", typeSelected);
+            } else {
+                var v = btn.dataset.type;
+                if (typeSelected.has(v)) typeSelected.delete(v);
+                else typeSelected.add(v);
+            }
+            syncMultiChipGroup("type-chips", "type", typeSelected);
+            closeDetail();
+            renderList();
+            renderMarkers();
+        });
+
+        document.getElementById("price-chips").addEventListener("click", function(e) {
+            var btn = e.target.closest(".chip");
+            if (!btn) return;
+            priceFilter = btn.dataset.price;
+            syncChipGroup("price-chips", "price", priceFilter);
+            closeDetail();
+            renderList();
+            renderMarkers();
+        });
+
+        document.getElementById("f-interest").addEventListener("click", function() {
+            interestOnly = !interestOnly;
+            this.classList.toggle("active", interestOnly);
+            closeDetail();
+            renderList();
+            renderMarkers();
+        });
+
+        // ===== GEOLOCALIZACIÓN CON CONSENTIMIENTO =====
+        var SVG_LOC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h2M20 12h2"/><circle cx="12" cy="12" r="9" stroke-opacity=".3"/></svg>';
+
+        // "Cómo llegar" calcula la ruta desde TU posición: sin consentimiento
+        // explícito y ubicación en tiempo real activa, no hay origen que usar.
+        window.requireLocationForRoute = function() {
+            if (!userPos) {
+                notify('No se puede calcular la ruta sin tu consentimiento explícito. Debes activar la ubicación en tiempo real con el botón "Mi Ubicación".', 'error');
+                return false;
+            }
+            return true;
+        };
+
+        function updateUserMarker(lat, lng, acc) {
+            userPos = { lat: lat, lng: lng };
+            var latlng = L.latLng(lat, lng);
+            var radius = (acc && acc > 0) ? acc : 20;
+            if (userCircle) { userCircle.setLatLng(latlng).setRadius(radius); } else {
+                userCircle = L.circle(latlng, { radius: radius, color: "#3b82f6", fillColor: "#3b82f6",
+                        fillOpacity: .10, weight: 1.5, interactive: false }).addTo(map);
+            }
+            if (userMarker) {
+                userMarker.setLatLng(latlng);
+                userMarker.setPopupContent("<b style='color:#3b82f6'>📍 Tu posición actual</b><br><small style='color:#888'>Precisión: ±" +
+                    (Math.round(radius)) + "m</small>");
+            } else {
+                userMarker = L.circleMarker(latlng, { radius: 8, color: "#fff", weight: 2, fillColor: "#3b82f6",
+                        fillOpacity: 1, zIndexOffset: 1000, interactive: true }).addTo(map);
+                userMarker.bindPopup("<b style='color:#3b82f6'>📍 Tu posición actual</b><br><small style='color:#888'>Precisión: ±" +
+                    (Math.round(radius)) + "m</small>");
+            }
+        }
+
+        function startLocation(highAccuracy) {
+            if (!navigator.geolocation) {
+                notify("Tu navegador no soporta geolocalización.", "error");
+                return;
+            }
+            var btn = document.getElementById("btn-locate");
+            btn.innerHTML = SVG_LOC + " Buscando…";
+            btn.disabled = true;
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    var lat = pos.coords.latitude,
+                        lng = pos.coords.longitude,
+                        acc = pos.coords.accuracy;
+                    updateUserMarker(lat, lng, acc);
+                    map.setView([lat, lng], 16, { animate: true });
+                    btn.innerHTML = SVG_LOC + " Mi Ubicación";
+                    btn.disabled = false;
+                    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+                    watchId = navigator.geolocation.watchPosition(
+                        function(p) { updateUserMarker(p.coords.latitude, p.coords.longitude, p.coords
+                            .accuracy); },
+                        function() {},
+                        { enableHighAccuracy: highAccuracy, maximumAge: 5000, timeout: 15000 }
+                    );
+                    notify("Ubicación obtenida correctamente.", "success");
+                },
+                function(err) {
+                    btn.innerHTML = SVG_LOC + " Mi Ubicación";
+                    btn.disabled = false;
+                    var msg = "No se pudo obtener la ubicación.";
+                    if (err.code === 1) {
+                        msg = "Permiso de ubicación denegado. Activa la ubicación para este sitio en tu navegador.";
+                    } else if (err.code === 2) {
+                        msg = "Señal de ubicación no disponible. Inténtalo de nuevo más tarde.";
+                    } else if (err.code === 3) {
+                        msg = "Tiempo de espera agotado. Inténtalo de nuevo.";
+                    }
+                    notify(msg, "error");
+                }, { enableHighAccuracy: highAccuracy, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        document.getElementById("btn-locate").addEventListener("click", function() {
+            if (!isPoliticaAceptada()) {
+                notify("Debes aceptar la política de privacidad primero.", "error");
+                openModal('modal-aceptar-politica');
+                return;
+            }
+            if (watchId !== null && userPos) {
+                map.setView([userPos.lat, userPos.lng], 16, { animate: true });
+                if (userMarker) userMarker.openPopup();
+                return;
+            }
+            openModal('modal-consentimiento');
+        });
+
+        document.getElementById("btn-consent-accept").addEventListener("click", function() {
+            closeModal('modal-consentimiento');
+            var highAcc = document.getElementById('chk-high-accuracy').checked;
+            consentGiven = true;
+            startLocation(highAcc);
+        });
+
+        // ===== VALIDACIÓN DEL JSON =====
+        function validateEventData(data) {
+            if (!data || typeof data !== 'object') return false;
+            if (!Array.isArray(data.eventos)) return false;
+            for (var i = 0; i < data.eventos.length; i++) {
+                var e = data.eventos[i];
+                if (!e.nombre || !e.fecha) return false;
+            }
+            return true;
+        }
+
+        // ===== BUILD TYPE FILTERS =====
+        function buildTypeFilters() {
+            var types = new Set();
+            EVENTS.forEach(function(e) { e.tipo.forEach(function(t) { types.add(t); }); });
+            var box = document.getElementById("type-chips");
+            Array.from(types).sort().forEach(function(t) {
+                var c = typeColor(t);
+                var b = document.createElement("button");
+                b.className = "chip type-chip";
+                b.dataset.type = t;
+                b.textContent = typeEmoji(t) + " " + typeLabel(t);
+                b.dataset.color = c;
+                box.appendChild(b);
+            });
+        }
+
+        // ===== INIT =====
+        function showLoadError(err) {
+            document.getElementById("sidebar").innerHTML =
+                '<div class="no-res">No se pudo cargar <code>datos_eventos.json</code>.<br><br>' +
+                'Si has abierto este archivo directamente con doble clic (file://), el navegador bloquea la carga del JSON por seguridad.<br><br>' +
+                'Sirve la carpeta con un servidor local, por ejemplo:<br><code>python3 -m http.server</code><br>y abre <code>http://localhost:8000</code>.</div>';
+            console.error(err);
+            notify("Error al cargar los datos. Revisa la consola.", "error");
+        }
+
+        fetch("datos_eventos.json")
+            .then(function(r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+            .then(function(data) {
+                if (!validateEventData(data)) {
+                    throw new Error("El formato del JSON no es válido.");
+                }
+                EVENTS = (data.eventos || []).map(buildEvent);
+                restoreInterestState();
+                loadGeocache();
+                buildTypeFilters();
+                typeSelected = selectAllInGroup("type-chips", "type");
+                syncMultiChipGroup("day-chips", "day", daySelected);
+                syncMultiChipGroup("type-chips", "type", typeSelected);
+                syncChipGroup("price-chips", "price", priceFilter);
+                renderWeekLabel();
+                renderList();
+                renderMarkers();
+                startGeocodeQueue();
+            })
+            .catch(showLoadError);
+
+        console.log("✅ Aplicación actualizada con medidas de seguridad y GDPR.");
+    </script>
+</body>
+</html>
