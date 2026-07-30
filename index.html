@@ -1121,6 +1121,23 @@
             background: rgba(212,168,67,0.32);
             color: #ffe6a8;
         }
+        .dbtn-copy {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border) !important;
+            color: var(--text);
+        }
+        .dbtn-copy.done {
+            background: rgba(46,204,113,0.18);
+            border-color: rgba(46,204,113,0.5) !important;
+            color: var(--free);
+        }
+
+        /* ===== EVENTOS PASADOS ===== */
+        .pcard.pcard-past { opacity: .55; }
+        .pcard.pcard-past .pname,
+        .pcard.pcard-past .pdate { text-decoration: line-through; }
+        .vp-item.vp-past { text-decoration: line-through; opacity: .6; }
+        .dother button.past { text-decoration: line-through; opacity: .6; }
         .devent-image {
             margin-top: 13px;
         }
@@ -1282,7 +1299,7 @@
     <div class="modal-overlay" id="modal-calendario">
         <div class="modal-box modal-cal-box">
             <h2>📅 Elegir semana</h2>
-            <p style="margin-bottom:10px;">Selecciona un día para ir a su semana. Los días con un punto rojo tienen al menos un evento.</p>
+            <p style="margin-bottom:10px;">Selecciona una semana.<br>Los días marcados tienen al menos un evento.</p>
             <div class="cal-header">
                 <button class="cal-nav" id="cal-prev-month" aria-label="Mes anterior">‹</button>
                 <span class="cal-month-label" id="cal-month-label"></span>
@@ -1414,6 +1431,14 @@
                 var u = new URL(String(url), location.href);
                 if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
                 return escapeAttr(u.href);
+            } catch (e) { return ''; }
+        }
+        function safeURLPlain(url) {
+            if (!url) return '';
+            try {
+                var u = new URL(String(url), location.href);
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+                return u.href;
             } catch (e) { return ''; }
         }
 
@@ -1582,6 +1607,12 @@
         }
         function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
         function sameDay(a, b) { return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+        function isPastDay(d) {
+            var today = new Date();
+            var t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            var d0 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            return d0 < t0;
+        }
         function fmtDayMonth(d) { return d.getDate() + " " + MONTH_ABBR[d.getMonth()]; }
         function slug(s) {
             return (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -1762,7 +1793,8 @@
                 otherHTML = '<div class="dblock wide"><div class="dlabel">🔄 Otras fechas de este evento</div>' +
                     '<div class="dother">' + others.map(function(o) {
                         var cur = o.id === e.id;
-                        return '<button class="' + (cur ? "cur" : "") + '" ' + (cur ? "disabled" : 'onclick="selectP(\'' + escapeAttr(o.id) + '\')"') + '>' +
+                        var pastCls = isPastDay(o.dateObj) ? " past" : "";
+                        return '<button class="' + (cur ? "cur" : "") + pastCls + '" ' + (cur ? "disabled" : 'onclick="selectP(\'' + escapeAttr(o.id) + '\')"') + '>' +
                             fmtDayMonth(o.dateObj) + (o.horaInicio ? ", " + o.horaInicio : "") + '</button>';
                     }).join("") + '</div></div>';
             }
@@ -1801,6 +1833,7 @@
                 ) : "") +
                 (safeHref(e.urlOficial) ? '<a class="dbtn dbtn-official" href="' + safeHref(e.urlOficial) + '" target="_blank" rel="noopener noreferrer">🌐 Sitio oficial</a>' : "") +
                 (safeHref(e.urlTickets) ? '<a class="dbtn dbtn-tickets" href="' + safeHref(e.urlTickets) + '" target="_blank" rel="noopener noreferrer">🎫 Comprar entradas</a>' : "") +
+                '<button class="dbtn dbtn-copy" id="dbtn-copy" onclick="copyEventInfo(\'' + escapeAttr(id) + '\')">📋 Copiar evento</button>' +
                 '<button class="dbtn dbtn-int' + (isInt ? " done" : "") + '" onclick="toggleInterest(\'' + escapeAttr(id) + '\')">' +
                 (isInt ? "★ Te interesa" : "☆ Me interesa") +
                 '</button>' +
@@ -1847,6 +1880,77 @@
             renderMarkers();
         };
 
+        // ===== COPIAR EVENTO AL PORTAPAPELES =====
+        window.copyEventInfo = function(id) {
+            var e = EVENTS.find(function(x) { return x.id === id; });
+            if (!e) return;
+
+            var lines = [];
+            lines.push("🎉 *" + e.nombre + "*");
+            lines.push("📅 " + dateTimeLabel(e));
+            lines.push(e.direccion ? "📍 " + e.direccion : "📍 Ubicación descentralizada");
+            lines.push(priceLabel(e));
+            if (e.entorno) lines.push("🌳 " + e.entorno.charAt(0).toUpperCase() + e.entorno.slice(1));
+            if (e.tipo && e.tipo.length) lines.push("🏷️ " + e.tipo.map(typeLabel).join(", "));
+            if (e.descripcion) { lines.push(""); lines.push(e.descripcion); }
+
+            var addrForMaps = e.direccion ? encodeURIComponent(e.direccion + ", " + CITY + ", Alemania") : encodeURIComponent(e.nombre + ", " + CITY);
+            var mapsU = safeURLPlain(e.ubicacionGoogleMaps) || ("https://www.google.com/maps/search/?api=1&query=" + addrForMaps);
+            var oficialU = safeURLPlain(e.urlOficial);
+            var ticketsU = safeURLPlain(e.urlTickets);
+
+            var links = [];
+            if (oficialU) links.push("🌐 Sitio oficial: " + oficialU);
+            if (ticketsU) links.push("🎫 Entradas: " + ticketsU);
+            if (e.direccion) links.push("🗺️ Cómo llegar: " + mapsU);
+            if (links.length) { lines.push(""); lines = lines.concat(links); }
+
+            var text = lines.join("\n");
+
+            function onCopied() {
+                notify("Evento copiado al portapapeles.", "success");
+                var btn = document.getElementById("dbtn-copy");
+                if (btn) {
+                    var original = btn.textContent;
+                    btn.classList.add("done");
+                    btn.textContent = "✅ Copiado";
+                    setTimeout(function() {
+                        btn.classList.remove("done");
+                        btn.textContent = original;
+                    }, 2000);
+                }
+            }
+            function onFailed() { notify("No se pudo copiar el evento.", "error"); }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(onCopied, function() {
+                    try {
+                        var ta = document.createElement("textarea");
+                        ta.value = text;
+                        ta.style.position = "fixed";
+                        ta.style.opacity = "0";
+                        document.body.appendChild(ta);
+                        ta.focus(); ta.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(ta);
+                        onCopied();
+                    } catch (err) { onFailed(); }
+                });
+            } else {
+                try {
+                    var ta2 = document.createElement("textarea");
+                    ta2.value = text;
+                    ta2.style.position = "fixed";
+                    ta2.style.opacity = "0";
+                    document.body.appendChild(ta2);
+                    ta2.focus(); ta2.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta2);
+                    onCopied();
+                } catch (err) { onFailed(); }
+            }
+        };
+
         // ===== FILTRADO =====
         function inActiveWeek(e) {
             if (weekMode === "all") return true;
@@ -1880,13 +1984,14 @@
             sb.innerHTML = events.map(function(e) {
                 var isInt = interestSet.has(e.id);
                 var a = activeId === e.id;
+                var isPast = isPastDay(e.dateObj);
                 var mainType = e.tipo[0];
                 var icon = mainType ? typeEmoji(mainType) : TYPE_EMOJI_FALLBACK;
                 var tags = e.tipo.slice(0, 3).map(function(t) {
                     var c = typeColor(t);
                     return '<span class="badge" style="background:' + c + '22;color:' + c + '">' + escapeHTML(typeLabel(t)) + '</span>';
                 }).join("");
-                return '<div class="pcard' + (a ? " active" : "") + (isInt ? " interesa" : "") +
+                return '<div class="pcard' + (a ? " active" : "") + (isInt ? " interesa" : "") + (isPast ? " pcard-past" : "") +
                     '" onclick="selectP(\'' + escapeAttr(e.id) + '\')">' +
                     '<div class="pdate">' + escapeHTML(dateTimeLabel(e)) + '</div>' +
                     '<div class="ph">' +
@@ -1935,7 +2040,8 @@
                     } else {
                         var html = '<div class="venue-pop"><b>' + group.length + ' eventos aquí</b>' +
                             group.map(function(e) {
-                                return '<div class="vp-item" onclick="selectP(\'' + escapeAttr(e.id) + '\')">' + escapeHTML(dateTimeLabel(e)) + ' — ' + escapeHTML(e.nombre) + '</div>';
+                                var pastCls = isPastDay(e.dateObj) ? " vp-past" : "";
+                                return '<div class="vp-item' + pastCls + '" onclick="selectP(\'' + escapeAttr(e.id) + '\')">' + escapeHTML(dateTimeLabel(e)) + ' — ' + escapeHTML(e.nombre) + '</div>';
                             }).join("") + '</div>';
                         m.bindPopup(html).openPopup();
                     }
@@ -2387,7 +2493,7 @@
             var allBtn = document.createElement("button");
             allBtn.className = "chip type-chip type-all active";
             allBtn.dataset.type = "all";
-            allBtn.textContent = "✓ Todos";
+            allBtn.textContent = "Todos";
             box.appendChild(allBtn);
 
             // Inicializar typeSelected con todos los tipos
