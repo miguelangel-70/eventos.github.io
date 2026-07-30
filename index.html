@@ -300,7 +300,7 @@
             flex-wrap: wrap;
             align-self: flex-start;
             width: 100%;
-            justify-content: flex-end; /* Alinea a la derecha */
+            justify-content: space-between;
         }
         .hdr-actions .hamburger {
             font-size: 1.5rem;
@@ -313,7 +313,7 @@
             cursor: pointer;
             transition: background .2s;
             font-family: inherit;
-            order: 2; /* A la derecha */
+            order: 2;
         }
         .hdr-actions .hamburger:hover { background: rgba(255,255,255,0.18); }
 
@@ -332,7 +332,7 @@
             gap: 6px;
             transition: background .2s;
             white-space: nowrap;
-            order: 1; /* A la izquierda */
+            order: 1;
         }
         #btn-locate:hover { background: rgba(255, 255, 255, .22); }
         #btn-locate svg {
@@ -340,7 +340,6 @@
             height: 15px;
             flex-shrink: 0;
         }
-        /* Ya no hay .hdr-btn para política y gestión en el header */
 
         /* ===== MENÚ HAMBURGUESA (DRAWER) ===== */
         .menu-overlay {
@@ -482,6 +481,22 @@
             color: var(--gold);
             border-color: var(--gold);
             background: rgba(212,168,67,0.12);
+        }
+        .menu-week .wk-cal {
+            font-size: 1rem;
+            padding: 8px 12px;
+            position: relative;
+        }
+        .wk-date-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            border: 0;
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
         }
 
         /* === DÍAS === */
@@ -1223,7 +1238,9 @@
                         <button class="wk-nav" id="wk-prev-menu">‹</button>
                         <span class="wk-label" id="wk-label-menu"></span>
                         <button class="wk-nav" id="wk-next-menu">›</button>
+                        <button class="wk-nav wk-cal" id="wk-cal-menu" aria-label="Elegir semana en el calendario" title="Elegir semana en el calendario">📅</button>
                         <button class="wk-all" id="wk-all-menu">Todas</button>
+                        <input type="date" id="wk-date-input" class="wk-date-input" aria-hidden="true">
                     </div>
                 </div>
 
@@ -1265,7 +1282,7 @@
                     <button class="chip interest-chip" id="f-interest-menu">★ Solo eventos que me interesan</button>
                 </div>
 
-                <!-- FOOTER con Política y Gestión -->
+                <!-- FOOTER -->
                 <div class="menu-footer">
                     <button class="menu-footer-btn" id="btn-locate-menu">📍 Mi Ubicación</button>
                     <button class="menu-footer-btn" id="btn-privacidad-menu">📋 Política de Privacidad</button>
@@ -1384,8 +1401,6 @@
             if (confirm('¿Estás seguro de revocar el consentimiento de ubicación?')) revocarConsentimiento();
         });
 
-        // ===== BOTONES CABECERA (ya no hay política ni gestión) =====
-
         // ===== GESTIÓN DE DATOS =====
         function refreshGestionModal() {
             var interests = Array.from(interestSet);
@@ -1430,17 +1445,13 @@
         // ========================================================================
         var CITY = "Düsseldorf";
         var CITY_CENTER = [51.2277, 6.7735];
+        // Se eliminan: familia, mercado, teatro, cine, fiesta
         var TYPE_EMOJI = {
             "música": "🎵",
             "comida": "🍽️",
             "arte": "🎨",
             "baile": "💃",
-            "cine": "🎬",
-            "teatro": "🎭",
             "deporte": "⚽",
-            "mercado": "🛍️",
-            "familia": "👨‍👩‍👧",
-            "fiesta": "🎉",
             "picnic": "🧺",
             "grill": "🔥",
             "encuentro": "🤝"
@@ -1904,6 +1915,35 @@
         document.getElementById("wk-next-menu").addEventListener("click", function() { changeWeek(1); });
         document.getElementById("wk-all-menu").addEventListener("click", setWeekAll);
 
+        // ===== FILTROS: SEMANA VIA CALENDARIO =====
+        function toISODate(d) {
+            var m = ("0" + (d.getMonth() + 1)).slice(-2);
+            var day = ("0" + d.getDate()).slice(-2);
+            return d.getFullYear() + "-" + m + "-" + day;
+        }
+        var wkDateInput = document.getElementById("wk-date-input");
+        document.getElementById("wk-cal-menu").addEventListener("click", function() {
+            wkDateInput.value = toISODate(weekMode === "week" ? refMonday : getMonday(new Date()));
+            if (typeof wkDateInput.showPicker === "function") {
+                try { wkDateInput.showPicker(); } catch (e) { wkDateInput.click(); }
+            } else {
+                wkDateInput.focus();
+                wkDateInput.click();
+            }
+        });
+        wkDateInput.addEventListener("change", function() {
+            if (!wkDateInput.value) return;
+            var parts = wkDateInput.value.split("-");
+            var picked = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            refMonday = getMonday(picked);
+            weekMode = "week";
+            renderWeekLabel();
+            closeDetail();
+            renderList();
+            renderMarkers();
+            syncMenuState();
+        });
+
         // ===== FILTROS: DÍA, TIPO, PRECIO, INTERÉS (desde el menú) =====
 
         function syncMultiChipGroup(containerId, dataKey, selectedSet) {
@@ -1960,7 +2000,7 @@
                 else daySelected.add(v);
             }
             syncMultiChipGroup("day-chips-menu", "day", daySelected);
-            // Resetear tipos a "todos" para que se vea todo el contenido de la semana/día
+            // Resetear tipos a "todos"
             var allTypeChips = document.querySelectorAll("#type-chips-menu .chip:not(.type-all)");
             typeSelected = new Set(Array.from(allTypeChips).filter(function(c) { return c.dataset.type !== "all"; }).map(function(c) { return c.dataset.type; }));
             syncMultiChipGroup("type-chips-menu", "type", typeSelected);
@@ -2175,12 +2215,12 @@
 
         // ===== CONSTRUIR FILTROS DE TIPO (Categoría) =====
         function buildTypeFilters() {
-            // Definir los tipos base que siempre estarán disponibles (incluyendo los nuevos)
-            var baseTypes = ["música", "comida", "arte", "baile", "cine", "teatro", "deporte", "mercado", "familia", "fiesta", "picnic", "grill", "encuentro"];
+            // Definir los tipos base (se han eliminado familia, mercado, teatro, cine, fiesta)
+            var baseTypes = ["música", "comida", "arte", "baile", "deporte", "picnic", "grill", "encuentro"];
             // Recoger tipos de los eventos
             var eventTypes = new Set();
             EVENTS.forEach(function(e) { e.tipo.forEach(function(t) { eventTypes.add(t); }); });
-            // Unir con los baseTypes (para que siempre aparezcan aunque no haya eventos)
+            // Unir con los baseTypes
             var allTypes = new Set(baseTypes);
             eventTypes.forEach(function(t) { allTypes.add(t); });
 
@@ -2196,7 +2236,7 @@
                 b.dataset.color = c;
                 box.appendChild(b);
             });
-            // Luego el botón "Todos" con clase especial
+            // Luego el botón "Todos"
             var allBtn = document.createElement("button");
             allBtn.className = "chip type-chip type-all active";
             allBtn.dataset.type = "all";
@@ -2250,7 +2290,7 @@
         }
 
         initApp();
-        console.log("✅ Ajustes finales: hamburguesa a la derecha, título 'Eventos', categorías con nuevos tipos, política y gestión solo en menú.");
+        console.log("✅ Categorías actualizadas: se han eliminado familia, mercado, teatro, cine y fiesta.");
     </script>
 </body>
 </html>
