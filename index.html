@@ -182,6 +182,84 @@
             transition: background 0.2s;
         }
         .modal-box .btn-close-modal:hover { background: rgba(255,255,255,0.16); }
+
+        /* ===== CALENDARIO PERSONALIZADO ===== */
+        .modal-cal-box { max-width: 380px; }
+        .cal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 6px 0 10px;
+        }
+        .cal-nav {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .cal-nav:hover { background: rgba(255,255,255,0.18); }
+        .cal-month-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.05rem;
+            color: var(--gold);
+            text-transform: capitalize;
+        }
+        .cal-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .cal-weekdays span {
+            text-align: center;
+            font-size: 0.68rem;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .cal-day {
+            position: relative;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: var(--text);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .cal-day:hover { background: rgba(255,255,255,0.14); }
+        .cal-day.cal-empty { visibility: hidden; cursor: default; }
+        .cal-day.cal-today { border-color: var(--gold); }
+        .cal-day.cal-in-week { background: rgba(212,168,67,0.18); }
+        .cal-day.cal-selected { background: var(--gold); color: var(--dark); font-weight: 700; }
+        .cal-day .cal-dot {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #e74c3c;
+        }
+        .cal-day.cal-selected .cal-dot { background: var(--dark); }
         .modal-box .btn-primary {
             background: var(--gold);
             color: var(--dark);
@@ -486,17 +564,6 @@
             font-size: 1rem;
             padding: 8px 12px;
             position: relative;
-        }
-        .wk-date-input {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            border: 0;
-            opacity: 0;
-            pointer-events: none;
-            overflow: hidden;
         }
 
         /* === DÍAS === */
@@ -1139,16 +1206,16 @@
     <div class="modal-overlay" id="modal-aceptar-politica">
         <div class="modal-box">
             <h2>📋 Política de Privacidad</h2>
-            <p>Esta aplicación utiliza tu ubicación para mostrarte rutas y almacena localmente tus preferencias y caché de geocodificación.</p>
+            <p>Esta aplicación (Los Locos del Tandem — Agenda de Eventos) utiliza tu ubicación para mostrarte rutas a los eventos y almacena localmente tus preferencias (eventos marcados como "Me interesa") y una caché de geocodificación para mejorar el rendimiento.</p>
             <p><strong>Datos tratados:</strong></p>
             <ul>
-                <li><strong>Ubicación</strong> (solo con consentimiento, no se almacena).</li>
+                <li><strong>Ubicación geográfica</strong> (solo con tu consentimiento explícito, no se almacena).</li>
                 <li><strong>Preferencias</strong> (eventos favoritos) guardadas en tu navegador.</li>
-                <li><strong>Caché de direcciones</strong> para agilizar el mapa.</li>
+                <li><strong>Caché de direcciones</strong> para agilizar la carga del mapa.</li>
                 <li><strong>IP y metadatos</strong> compartidos con servicios de terceros (Google Fonts, Leaflet CDN, CartoDB, Photon API, Google Maps).</li>
             </ul>
-            <p>Puedes gestionar y eliminar tus datos desde <strong>“Gestionar mis datos”</strong>.</p>
-            <p>Al hacer clic en <strong>“Aceptar”</strong>, aceptas el tratamiento según la <a href="#" onclick="event.preventDefault();openModal('modal-privacidad');">política de privacidad completa</a>.</p>
+            <p>Puedes gestionar y eliminar tus datos en cualquier momento desde el botón <strong>“Gestionar mis datos”</strong> en la cabecera.</p>
+            <p>Al hacer clic en <strong>“Aceptar”</strong>, aceptas el tratamiento de tus datos según se describe en la <a href="#" onclick="event.preventDefault();openModal('modal-privacidad');">política de privacidad completa</a>.</p>
             <div class="actions-row">
                 <button class="btn-primary" id="btn-aceptar-politica">Aceptar</button>
                 <button class="btn-secondary" id="btn-cancelar-politica">Cancelar</button>
@@ -1159,12 +1226,20 @@
     <div class="modal-overlay" id="modal-privacidad">
         <div class="modal-box">
             <h2>📋 Política de Privacidad</h2>
-            <p><strong>Finalidades:</strong> Mostrar eventos culturales y de ocio en Düsseldorf, facilitar la orientación geográfica y permitir guardar intereses.</p>
-            <p><strong>Usuarios finales:</strong> Exclusivo para el grupo de WhatsApp "Los Locos del Tandem".</p>
-            <p><strong>Base legal:</strong> Consentimiento del interesado (art. 6.1.a GDPR).</p>
-            <p><strong>Plazos:</strong> Ubicación no se almacena; preferencias y caché se guardan localmente hasta que decidas eliminarlos (máx. 30 días para caché).</p>
-            <p><strong>Derechos:</strong> Acceder, rectificar, suprimir, limitar y oponerte mediante “Gestionar mis datos”.</p>
-            <p><strong>Servicios de terceros:</strong> Google Fonts, Leaflet CDN, CartoDB, Photon API, Google Maps. Pueden implicar transferencias a países fuera del EEE.</p>
+            <p><strong>Finalidades:</strong> Mostrar eventos culturales y de ocio en Düsseldorf, facilitar la orientación geográfica y permitir a los usuarios guardar sus intereses (eventos favoritos).</p>
+            <p><strong>Usuarios finales:</strong> Esta aplicación/página web es de uso exclusivo de los usuarios del grupo de WhatsApp "Los Locos del Tandem".</p>
+            <p><strong>Base legal:</strong> Consentimiento del interesado (art. 6.1.a GDPR) para el uso de ubicación y almacenamiento de preferencias.</p>
+            <p><strong>Plazos de conservación:</strong> Los datos de ubicación no se almacenan; las preferencias (intereses) y la caché de geocodificación se guardan localmente en tu navegador hasta que decidas eliminarlos (máximo 30 días para la caché).</p>
+            <p><strong>Derechos:</strong> Puedes acceder, rectificar, suprimir, limitar el tratamiento y oponerte al uso de tus datos mediante el botón <em>“Gestionar mis datos”</em> disponible en la cabecera.</p>
+            <p><strong>Servicios de terceros utilizados:</strong></p>
+            <ul>
+                <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com) – IP del usuario. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
+                <li><strong>Leaflet CDN</strong> (unpkg.com) – IP del usuario. <a href="https://unpkg.com/about" target="_blank" rel="noopener">Información</a></li>
+                <li><strong>CartoDB</strong> (basemaps.cartocdn.com) – IP, para cargar el mapa base. <a href="https://carto.com/privacy/" target="_blank" rel="noopener">Política de privacidad</a></li>
+                <li><strong>Photon API</strong> (photon.komoot.io) – direcciones buscadas e IP. <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
+                <li><strong>Google Maps</strong> (enlaces de navegación) – al hacer clic, se transfieren datos a Google según su política. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a></li>
+            </ul>
+            <p>Estas transferencias pueden implicar el envío de datos a países fuera del EEE. Al utilizar la aplicación, aceptas estas transferencias.</p>
             <button class="btn-close-modal" onclick="closeModal('modal-privacidad')">Cerrar</button>
         </div>
     </div>
@@ -1204,6 +1279,21 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modal-calendario">
+        <div class="modal-box modal-cal-box">
+            <h2>📅 Elegir semana</h2>
+            <p style="margin-bottom:10px;">Selecciona un día para ir a su semana. Los días con un punto rojo tienen al menos un evento.</p>
+            <div class="cal-header">
+                <button class="cal-nav" id="cal-prev-month" aria-label="Mes anterior">‹</button>
+                <span class="cal-month-label" id="cal-month-label"></span>
+                <button class="cal-nav" id="cal-next-month" aria-label="Mes siguiente">›</button>
+            </div>
+            <div class="cal-weekdays" id="cal-weekdays"></div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <button class="btn-close-modal" onclick="closeModal('modal-calendario')">Cerrar</button>
+        </div>
+    </div>
+
     <!-- ===== HEADER ===== -->
     <header>
         <div class="hdr-left">
@@ -1240,7 +1330,6 @@
                         <button class="wk-nav" id="wk-next-menu">›</button>
                         <button class="wk-nav wk-cal" id="wk-cal-menu" aria-label="Elegir semana en el calendario" title="Elegir semana en el calendario">📅</button>
                         <button class="wk-all" id="wk-all-menu">Todas</button>
-                        <input type="date" id="wk-date-input" class="wk-date-input" aria-hidden="true">
                     </div>
                 </div>
 
@@ -1445,7 +1534,7 @@
         // ========================================================================
         var CITY = "Düsseldorf";
         var CITY_CENTER = [51.2277, 6.7735];
-        // Se eliminan: familia, mercado, teatro, cine, fiesta
+        // Se eliminan: familia, mercado, teatro, cine, fiesta, grill
         var TYPE_EMOJI = {
             "música": "🎵",
             "comida": "🍽️",
@@ -1453,20 +1542,19 @@
             "baile": "💃",
             "deporte": "⚽",
             "picnic": "🧺",
-            "grill": "🔥",
             "encuentro": "🤝"
         };
         var TYPE_EMOJI_FALLBACK = "📌";
         var TYPE_LABELS = {
             "comida": "Gastronomía",
             "picnic": "Picnic",
-            "grill": "Grill",
             "encuentro": "Encuentro"
         };
         function typeLabel(t) { return TYPE_LABELS[t] || t.charAt(0).toUpperCase() + t.slice(1); }
         var TYPE_COLORS = ["#4ECBA0","#E07060","#5DADE2","#BB8FCE","#F4D03F","#EB984E","#48C9B0","#EC7063","#85C1E9","#82E0AA", "#F39C12", "#E67E22", "#2ECC71"];
         var DAY_ABBR = { 0: "Dom", 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb" };
         var MONTH_ABBR = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+        var MONTH_FULL = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
         var INTEREST_KEY = "dus_ev_interes_v1";
         var GEOCACHE_KEY = "dus_ev_geocache_v1";
         var GEOCACHE_TTL = 30 * 24 * 60 * 60 * 1000;
@@ -1921,27 +2009,85 @@
             var day = ("0" + d.getDate()).slice(-2);
             return d.getFullYear() + "-" + m + "-" + day;
         }
-        var wkDateInput = document.getElementById("wk-date-input");
-        document.getElementById("wk-cal-menu").addEventListener("click", function() {
-            wkDateInput.value = toISODate(weekMode === "week" ? refMonday : getMonday(new Date()));
-            if (typeof wkDateInput.showPicker === "function") {
-                try { wkDateInput.showPicker(); } catch (e) { wkDateInput.click(); }
-            } else {
-                wkDateInput.focus();
-                wkDateInput.click();
+        function eventDatesSet() {
+            var s = new Set();
+            EVENTS.forEach(function(e) { if (e.fecha) s.add(e.fecha); });
+            return s;
+        }
+        var calViewDate = new Date();
+        calViewDate.setDate(1);
+
+        function renderCalendar() {
+            document.getElementById("cal-month-label").textContent =
+                MONTH_FULL[calViewDate.getMonth()] + " " + calViewDate.getFullYear();
+
+            var wkBox = document.getElementById("cal-weekdays");
+            if (!wkBox.dataset.built) {
+                wkBox.innerHTML = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+                    .map(function(l) { return "<span>" + l + "</span>"; }).join("");
+                wkBox.dataset.built = "1";
             }
+
+            var grid = document.getElementById("cal-grid");
+            grid.innerHTML = "";
+
+            var year = calViewDate.getFullYear(), month = calViewDate.getMonth();
+            var firstOfMonth = new Date(year, month, 1);
+            var startOffset = (firstOfMonth.getDay() === 0) ? 6 : firstOfMonth.getDay() - 1;
+            var daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            var todayStr = toISODate(new Date());
+            var evtDates = eventDatesSet();
+            var weekEnd = weekMode === "week" ? addDays(refMonday, 6) : null;
+
+            for (var i = 0; i < startOffset; i++) {
+                var empty = document.createElement("div");
+                empty.className = "cal-day cal-empty";
+                grid.appendChild(empty);
+            }
+            for (var d = 1; d <= daysInMonth; d++) {
+                var dateObj = new Date(year, month, d);
+                var iso = toISODate(dateObj);
+                var cell = document.createElement("button");
+                cell.type = "button";
+                cell.className = "cal-day";
+                if (iso === todayStr) cell.classList.add("cal-today");
+                if (weekMode === "week" && dateObj >= refMonday && dateObj <= weekEnd) cell.classList.add("cal-in-week");
+                cell.textContent = String(d);
+                if (evtDates.has(iso)) {
+                    var dot = document.createElement("span");
+                    dot.className = "cal-dot";
+                    cell.appendChild(dot);
+                }
+                (function(dObj) {
+                    cell.addEventListener("click", function() {
+                        refMonday = getMonday(dObj);
+                        weekMode = "week";
+                        renderWeekLabel();
+                        closeDetail();
+                        renderList();
+                        renderMarkers();
+                        syncMenuState();
+                        closeModal('modal-calendario');
+                    });
+                })(dateObj);
+                grid.appendChild(cell);
+            }
+        }
+
+        document.getElementById("wk-cal-menu").addEventListener("click", function() {
+            calViewDate = new Date(weekMode === "week" ? refMonday : new Date());
+            calViewDate.setDate(1);
+            renderCalendar();
+            openModal('modal-calendario');
         });
-        wkDateInput.addEventListener("change", function() {
-            if (!wkDateInput.value) return;
-            var parts = wkDateInput.value.split("-");
-            var picked = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            refMonday = getMonday(picked);
-            weekMode = "week";
-            renderWeekLabel();
-            closeDetail();
-            renderList();
-            renderMarkers();
-            syncMenuState();
+        document.getElementById("cal-prev-month").addEventListener("click", function() {
+            calViewDate.setMonth(calViewDate.getMonth() - 1);
+            renderCalendar();
+        });
+        document.getElementById("cal-next-month").addEventListener("click", function() {
+            calViewDate.setMonth(calViewDate.getMonth() + 1);
+            renderCalendar();
         });
 
         // ===== FILTROS: DÍA, TIPO, PRECIO, INTERÉS (desde el menú) =====
@@ -2215,11 +2361,12 @@
 
         // ===== CONSTRUIR FILTROS DE TIPO (Categoría) =====
         function buildTypeFilters() {
-            // Definir los tipos base (se han eliminado familia, mercado, teatro, cine, fiesta)
-            var baseTypes = ["música", "comida", "arte", "baile", "deporte", "picnic", "grill", "encuentro"];
+            // Definir los tipos base (se han eliminado familia, mercado, teatro, cine, fiesta, grill)
+            var baseTypes = ["música", "comida", "arte", "baile", "deporte", "picnic", "encuentro"];
             // Recoger tipos de los eventos
             var eventTypes = new Set();
             EVENTS.forEach(function(e) { e.tipo.forEach(function(t) { eventTypes.add(t); }); });
+            eventTypes.delete("grill");
             // Unir con los baseTypes
             var allTypes = new Set(baseTypes);
             eventTypes.forEach(function(t) { allTypes.add(t); });
@@ -2250,6 +2397,10 @@
 
         // ===== INICIALIZACIÓN CON DETECCIÓN DE PROTOCOLO FILE =====
         function initApp() {
+            // Por defecto siempre se muestra la semana actual
+            weekMode = "week";
+            refMonday = getMonday(new Date());
+
             if (location.protocol === 'file:') {
                 document.getElementById("sidebar").innerHTML =
                     '<div class="no-res">⚠️ No se puede cargar datos desde <code>file://</code>.<br><br>' +
@@ -2290,7 +2441,7 @@
         }
 
         initApp();
-        console.log("✅ Categorías actualizadas: se han eliminado familia, mercado, teatro, cine y fiesta.");
+        console.log("✅ Categorías actualizadas: se han eliminado familia, mercado, teatro, cine, fiesta y grill.");
     </script>
 </body>
 </html>
